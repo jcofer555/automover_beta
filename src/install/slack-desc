@@ -1,4 +1,4 @@
-unraid-plugin: automover_beta
+unraid-plugin: Automover Beta
 unraid-plugin:
 unraid-plugin: Monitor pool disks, move files from pool only when thresholds
 unraid-plugin: are exceeded, and log what's been moved.
