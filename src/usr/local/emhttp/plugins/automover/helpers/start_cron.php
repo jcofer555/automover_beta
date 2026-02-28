@@ -1,6 +1,6 @@
 <?php
-$cfgPath  = '/boot/config/plugins/automover/settings.cfg';
-$cronFile = '/boot/config/plugins/automover/automover.cron';
+$cfgPath  = '/boot/config/plugins/automover_beta/settings.cfg';
+$cronFile = '/boot/config/plugins/automover_beta/automover_beta.cron';
 $response = ['status' => 'ok'];
 
 // Grab all posted values
@@ -17,7 +17,7 @@ $CRON_EXPRESSION = trim($_POST['CRON_EXPRESSION'] ?? '');
 
 // Build cron entry directly from CRON_EXPRESSION
 if (!empty($CRON_EXPRESSION)) {
-    $cronEntry = "$CRON_EXPRESSION /usr/local/emhttp/plugins/automover/helpers/automover.sh &> /dev/null 2>&1\n";
+    $cronEntry = "$CRON_EXPRESSION /usr/local/emhttp/plugins/automover_beta/helpers/automover_beta.sh &> /dev/null 2>&1\n";
 } else {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Missing cron expression']);

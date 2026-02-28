@@ -1,9 +1,9 @@
 <?php
 header("Content-Type: application/json");
 
-$lock      = "/tmp/automover/lock.txt";
-$status    = "/tmp/automover/temp_logs/status.txt";
-$last      = "/tmp/automover/last_run.log";
+$lock      = "/tmp/automover_beta/lock.txt";
+$status    = "/tmp/automover_beta/temp_logs/status.txt";
+$last      = "/tmp/automover_beta/last_run.log";
 
 // ==============================
 // CSRF VALIDATION
@@ -19,22 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals($cookie, $posted)) {
 // ==========================================================
 // Set status to stopping
 // ==========================================================
-file_put_contents($status, "Stopping Automover…");
+file_put_contents($status, "Stopping automover_beta…");
 
 // ==========================================================
-// Kill automover shell scripts and rsync operations
+// Kill automover_beta shell scripts and rsync operations
 // ==========================================================
 
-// Kill any automover.sh loops
-exec("pkill -f 'automover.sh' 2>/dev/null");
+// Kill any automover_beta.sh loops
+exec("pkill -f 'automover_beta.sh' 2>/dev/null");
 
-// Kill any rsync processes started by automover
+// Kill any rsync processes started by automover_beta
 exec("pkill -f 'rsync -aH' 2>/dev/null");
 exec("pkill -f 'rsync --dry-run' 2>/dev/null");
 
-// Kill any find/fuser processes Automover may have spawned
+// Kill any find/fuser processes automover_beta may have spawned
 exec("pkill -f 'fuser -m' 2>/dev/null");
-exec("pkill -f 'find .*automover' 2>/dev/null");
+exec("pkill -f 'find .*automover_beta' 2>/dev/null");
 
 // ==========================================================
 // Kill process referenced by lock file (if alive)

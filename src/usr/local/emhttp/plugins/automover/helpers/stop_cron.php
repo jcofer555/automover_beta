@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-$cronFile = '/boot/config/plugins/automover/automover.cron';
+$cronFile = '/boot/config/plugins/automover_beta/automover_beta.cron';
 
 // Try to remove cron file
 if (file_exists($cronFile)) {
@@ -11,7 +11,7 @@ if (file_exists($cronFile)) {
         exec("update_cron");
         echo json_encode([
             "status" => "success",
-            "message" => "Automover cron stopped"
+            "message" => "automover_beta cron stopped"
         ]);
     } else {
         echo json_encode([
@@ -22,7 +22,7 @@ if (file_exists($cronFile)) {
 } else {
     echo json_encode([
         "status" => "success",
-        "message" => "Automover was already stopped"
+        "message" => "automover_beta was already stopped"
     ]);
 }
 ?>

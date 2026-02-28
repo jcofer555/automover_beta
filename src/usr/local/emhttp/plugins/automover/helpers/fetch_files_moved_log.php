@@ -1,10 +1,10 @@
 <?php
-$logDir = '/tmp/automover';
+$logDir = '/tmp/automover_beta';
 $logFile = "$logDir/files_moved.log";
 $prevLog = "$logDir/files_moved_prev.log";
 $lastRunLog = "$logDir/last_run.log";
 
-// ✅ Ensure the /tmp/automover directory exists
+// ✅ Ensure the /tmp/automover_beta directory exists
 if (!is_dir($logDir)) {
     @mkdir($logDir, 0755, true);
 }

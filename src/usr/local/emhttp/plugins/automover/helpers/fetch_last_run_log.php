@@ -1,5 +1,5 @@
 <?php
-$logPath = '/tmp/automover/last_run.log';
+$logPath = '/tmp/automover_beta/last_run.log';
 header('Content-Type: text/plain');
 
 if (!file_exists($logPath)) {

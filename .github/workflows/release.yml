@@ -1,4 +1,4 @@
-name: Auto Mover
+name: Auto Mover Beta
 
 on:
   release:

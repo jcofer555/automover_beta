@@ -22,11 +22,11 @@ For older releases, see https://github.com/{{ env['GITHUB_REPOSITORY'] }}/releas
 </CHANGES>
 
 <FILE Name="/boot/config/plugins/{{ name }}/jdupes-1.30.0-x86_64-2_slackdce.txz">
-<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/jdupes-1.30.0-x86_64-2_slackdce.txz</URL>
+<URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/jdupes-1.30.0-x86_64-2_slackdce.txz</URL>
 </FILE>
 
 <FILE Name="/boot/config/plugins/{{ name }}/libjodycode-4.0.1-x86_64-2_slackdce.txz">
-<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
+<URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
 </FILE>
 
 <FILE Name="/boot/config/plugins/{{ name }}/{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz">
@@ -45,10 +45,10 @@ For older releases, see https://github.com/{{ env['GITHUB_REPOSITORY'] }}/releas
 # ==========================================================
 
 PACKAGE_TXZ="/boot/config/plugins/{{ name }}/{{ package_name }}-{{ env['PLUGIN_VERSION'] }}-noarch-1.txz"
-USER_CFG="/boot/config/plugins/automover/settings.cfg"
-DEFAULT_CFG="/usr/local/emhttp/plugins/automover/helpers/default_settings.cfg"
-TMP_CFG="/tmp/automover_settings.tmp"
-CRON_FILE="/boot/config/plugins/automover/automover.cron"
+USER_CFG="/boot/config/plugins/automover_beta/settings.cfg"
+DEFAULT_CFG="/usr/local/emhttp/plugins/automover_beta/helpers/default_settings.cfg"
+TMP_CFG="/tmp/automover_beta_settings.tmp"
+CRON_FILE="/boot/config/plugins/automover_beta/automover_beta.cron"
 
 # Install the package
 upgradepkg --install-new "$PACKAGE_TXZ"
@@ -131,7 +131,7 @@ mv "$TMP_CFG" "$USER_CFG"
 # ==========================================================
 #  LOAD SETTINGS & SETUP CRON
 # ==========================================================
-SETTINGS="/boot/config/plugins/automover/settings.cfg"
+SETTINGS="/boot/config/plugins/automover_beta/settings.cfg"
 if [ -f "$SETTINGS" ]; then
     source "$SETTINGS"
 fi
@@ -142,7 +142,7 @@ MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
 
 if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
   if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
-    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and Automover.\nConsider uninstalling one to avoid incompatibility issues"
+    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and automover_beta.\nConsider uninstalling one to avoid incompatibility issues"
   fi
 fi
 
@@ -152,7 +152,7 @@ find /boot/config/plugins/{{ name }}/ -maxdepth 1 -type f -name "{{ package_name
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION (NEW CRON-ONLY MODEL)
 # ==========================================================
-CRON_CMD="/usr/local/emhttp/plugins/automover/helpers/automover.sh &> /dev/null 2>&1"
+CRON_CMD="/usr/local/emhttp/plugins/automover_beta/helpers/automover_beta.sh &> /dev/null 2>&1"
 
 if [ "$AUTOSTART" == "no" ]; then
     rm -f "$CRON_FILE"
@@ -171,7 +171,7 @@ echo " {{ name }} has been installed."
 echo " Version: {{ env['PLUGIN_VERSION'] }}"
 echo "----------------------------------------------------"
 echo ""
-echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → Automover"
+echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → automover_beta"
 echo ""
 echo ""
 echo "⚠️ It's suggested to disable unraids built in mover schedule at settings > scheduler this requires unraid 7.2.1+"

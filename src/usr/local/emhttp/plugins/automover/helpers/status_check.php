@@ -1,9 +1,9 @@
 <?php
-$cronFile   = '/boot/config/plugins/automover/automover.cron';
-$logFile    = '/tmp/automover/last_run.log';
-$bootFail   = '/tmp/automover/boot_failure';
+$cronFile   = '/boot/config/plugins/automover_beta/automover_beta.cron';
+$logFile    = '/tmp/automover_beta/last_run.log';
+$bootFail   = '/tmp/automover_beta/boot_failure';
 $arrayStateFile = '/var/local/emhttp/var.ini';
-$statusFile = '/tmp/automover/temp_logs/status.txt';
+$statusFile = '/tmp/automover_beta/temp_logs/status.txt';
 
 $status     = 'Stopped';
 $lastRun    = 'None';
@@ -32,7 +32,7 @@ if (file_exists($bootFail)) {
         }
     }
 
-    $automoverRunning = file_exists($cronFile) && strpos(file_get_contents($cronFile), 'automover.sh') !== false;
+    $automover_betaRunning = file_exists($cronFile) && strpos(file_get_contents($cronFile), 'automover_beta.sh') !== false;
 
     // Check array state
     $arrayStopped = false;
@@ -52,14 +52,14 @@ if (file_exists($bootFail)) {
 
     // Base Status
     if ($arrayStopped) {
-        $status = 'Array Is Not Started While Automover Is ' . ($automoverRunning ? 'Running' : 'Stopped');
+        $status = 'Array Is Not Started While automover_beta Is ' . ($automover_betaRunning ? 'Running' : 'Stopped');
     } elseif ($parityRunning) {
-        $status = 'Parity Check Happening While Automover Is ' . ($automoverRunning ? 'Running' : 'Stopped');
+        $status = 'Parity Check Happening While automover_beta Is ' . ($automover_betaRunning ? 'Running' : 'Stopped');
     } else {
-        $status = $automoverRunning ? 'Running' : 'Stopped';
+        $status = $automover_betaRunning ? 'Running' : 'Stopped';
     }
 
-// Override ONLY when automover.sh reports active file movement
+// Override ONLY when automover_beta.sh reports active file movement
 if (file_exists($statusFile)) {
     $movingState = trim(file_get_contents($statusFile));
 
@@ -102,7 +102,7 @@ if (file_exists($statusFile)) {
     }
 }
 
-// Always write detected status to file (so automover.sh can restore it)
+// Always write detected status to file (so automover_beta.sh can restore it)
 file_put_contents($statusFile, $status);
 
 header('Content-Type: application/json');

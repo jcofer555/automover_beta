@@ -1,12 +1,12 @@
 <?php
 header("Content-Type: application/json");
 
-$lock   = "/tmp/automover/lock.txt";
-$last   = "/tmp/automover/last_run.log";
-$status = "/tmp/automover/temp_logs/status.txt";
+$lock   = "/tmp/automover_beta/lock.txt";
+$last   = "/tmp/automover_beta/last_run.log";
+$status = "/tmp/automover_beta/temp_logs/status.txt";
 
-$automover_log      = "/tmp/automover/files_moved.log";
-$automover_log_prev = "/tmp/automover/files_moved_prev.log";
+$automover_beta_log      = "/tmp/automover_beta/files_moved.log";
+$automover_beta_log_prev = "/tmp/automover_beta/files_moved_prev.log";
 
 // ==============================
 // CSRF VALIDATION
@@ -20,19 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals($cookie, $posted)) {
 }
 
 // ==========================================================
-// Prevent collision with Automover
+// Prevent collision with automover_beta
 // ==========================================================
-$automover_running = false;
+$automover_beta_running = false;
 if (file_exists($lock)) {
     $pid = intval(trim(file_get_contents($lock)));
     if ($pid > 0 && posix_kill($pid, 0)) {
-        $automover_running = true;
+        $automover_beta_running = true;
     } else {
         @unlink($lock);
     }
 }
-if ($automover_running) {
-    echo json_encode(["ok" => false, "error" => "Automover already running"]);
+if ($automover_beta_running) {
+    echo json_encode(["ok" => false, "error" => "automover_beta already running"]);
     exit;
 }
 
@@ -44,7 +44,7 @@ file_put_contents($status, "Manual Rsync Running");
 // ==========================================================
 // Load settings.cfg
 // ==========================================================
-$cfg_file = "/boot/config/plugins/automover/settings.cfg";
+$cfg_file = "/boot/config/plugins/automover_beta/settings.cfg";
 $settings = [];
 if (file_exists($cfg_file)) {
     foreach (file($cfg_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -158,19 +158,19 @@ if ($notify) {
         ]);
         exec("curl -s -X POST -H 'Content-Type: application/json' -d '$json' \"$WEBHOOK_URL\" >/dev/null 2>&1");
     } else {
-        exec("/usr/local/emhttp/webGui/scripts/notify -e 'Automover' -s 'Manual rsync started' -d 'Manual rsync operation has started' -i 'normal'");
+        exec("/usr/local/emhttp/webGui/scripts/notify -e 'automover_beta' -s 'Manual rsync started' -d 'Manual rsync operation has started' -i 'normal'");
     }
 }
 
 // ==========================================================
 // Prepare logs
 // ==========================================================
-if (file_exists($automover_log)) {
-    unlink($automover_log);
+if (file_exists($automover_beta_log)) {
+    unlink($automover_beta_log);
 }
 
-$inuse_file   = "/tmp/automover/in_use_files.txt";
-$exclude_file = "/tmp/automover/manual_rsync_in_use_files.txt";
+$inuse_file   = "/tmp/automover_beta/in_use_files.txt";
+$exclude_file = "/tmp/automover_beta/manual_rsync_in_use_files.txt";
 
 // Reset both files each run
 file_put_contents($inuse_file, "");
@@ -185,7 +185,7 @@ $moved_any = false;
 $shareCounts = [];
 
 if ($full === "1") {
-    $exclude_file = "/tmp/automover/manual_rsync_in_use_files.txt";
+    $exclude_file = "/tmp/automover_beta/manual_rsync_in_use_files.txt";
     $files_in_use = [];
     $all_files = [];
 
@@ -262,7 +262,7 @@ foreach ($output as $line) {
     $moved_any = true;
     $src_file = $src_clean . $line;
     $dst_file = $dst_clean . $line;
-    file_put_contents($automover_log, "$src_file -> $dst_file\n", FILE_APPEND);
+    file_put_contents($automover_beta_log, "$src_file -> $dst_file\n", FILE_APPEND);
 
     $parts = explode("/", trim($dst_file, "/"));
     if (count($parts) >= 3 && $parts[1] === "user0") {
@@ -271,9 +271,9 @@ foreach ($output as $line) {
     }
 }
 if (!$moved_any) {
-    file_put_contents($automover_log, "No files moved for this manual move\n", FILE_APPEND);
+    file_put_contents($automover_beta_log, "No files moved for this manual move\n", FILE_APPEND);
 } else {
-    copy($automover_log, $automover_log_prev);
+    copy($automover_beta_log, $automover_beta_log_prev);
 }
 
 // ==========================================================
@@ -351,7 +351,7 @@ if ($notify) {
         }
 
         $body_escaped = escapeshellarg($body);
-        $cmd = "/usr/local/emhttp/webGui/scripts/notify -e 'Automover' -s 'Manual rsync finished' -d $body_escaped -i 'normal'";
+        $cmd = "/usr/local/emhttp/webGui/scripts/notify -e 'automover_beta' -s 'Manual rsync finished' -d $body_escaped -i 'normal'";
         exec("echo " . escapeshellarg($cmd) . " | at now + 1 minute");
     }
 }

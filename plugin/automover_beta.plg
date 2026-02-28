@@ -2,12 +2,12 @@
 <!DOCTYPE PLUGIN>
 
 <PLUGIN 
-  name="automover"
+  name="automover_beta"
   author="jcofer555"
   version="2026.02.25.03"
-  launch="Settings/Automover"
-  pluginURL="https://raw.githubusercontent.com/jcofer555/automover/main/plugin/automover.plg"
-  support="https://forums.unraid.net/topic/192216-automover-for-unraid/"
+  launch="Settings/automover_beta"
+  pluginURL="https://raw.githubusercontent.com/jcofer555/automover_beta/main/plugin/automover_beta.plg"
+  support="https://forums.unraid.net/topic/192216-automover_beta-for-unraid/"
   min="7.1.0"
   
   icon="icon.png"
@@ -29,20 +29,20 @@
 - Fix cleanup
 
 
-For older releases, see https://github.com/jcofer555/automover/releases
+For older releases, see https://github.com/jcofer555/automover_beta/releases
 ]]>
 </CHANGES>
 
-<FILE Name="/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz">
-<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/jdupes-1.30.0-x86_64-2_slackdce.txz</URL>
+<FILE Name="/boot/config/plugins/automover_beta/jdupes-1.30.0-x86_64-2_slackdce.txz">
+<URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/jdupes-1.30.0-x86_64-2_slackdce.txz</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz">
-<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
+<FILE Name="/boot/config/plugins/automover_beta/libjodycode-4.0.1-x86_64-2_slackdce.txz">
+<URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/automover/unraid-automover-2026.02.25.03-noarch-1.txz">
-<URL>https://github.com/jcofer555/automover/releases/download/2026.02.25.03/unraid-automover-2026.02.25.03-noarch-1.txz</URL>
+<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.02.25.03-noarch-1.txz">
+<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.02.25.03/unraid-automover_beta-2026.02.25.03-noarch-1.txz</URL>
 <SHA256>0e32180773235b779934f9415f99bbf817c93479cb80ed6ae77a8dd589ba0f2c</SHA256>
 </FILE>
 
@@ -56,16 +56,16 @@ For older releases, see https://github.com/jcofer555/automover/releases
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/automover/unraid-automover-2026.02.25.03-noarch-1.txz"
-USER_CFG="/boot/config/plugins/automover/settings.cfg"
-DEFAULT_CFG="/usr/local/emhttp/plugins/automover/helpers/default_settings.cfg"
-TMP_CFG="/tmp/automover_settings.tmp"
-CRON_FILE="/boot/config/plugins/automover/automover.cron"
+PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.02.25.03-noarch-1.txz"
+USER_CFG="/boot/config/plugins/automover_beta/settings.cfg"
+DEFAULT_CFG="/usr/local/emhttp/plugins/automover_beta/helpers/default_settings.cfg"
+TMP_CFG="/tmp/automover_beta_settings.tmp"
+CRON_FILE="/boot/config/plugins/automover_beta/automover_beta.cron"
 
 # Install the package
 upgradepkg --install-new "$PACKAGE_TXZ"
-upgradepkg --install-new "/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz"
-upgradepkg --install-new "/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz"
+upgradepkg --install-new "/boot/config/plugins/automover_beta/jdupes-1.30.0-x86_64-2_slackdce.txz"
+upgradepkg --install-new "/boot/config/plugins/automover_beta/libjodycode-4.0.1-x86_64-2_slackdce.txz"
 
 # Ordered config keys (new cron-only model)
 ordered_keys=(
@@ -143,7 +143,7 @@ mv "$TMP_CFG" "$USER_CFG"
 # ==========================================================
 #  LOAD SETTINGS & SETUP CRON
 # ==========================================================
-SETTINGS="/boot/config/plugins/automover/settings.cfg"
+SETTINGS="/boot/config/plugins/automover_beta/settings.cfg"
 if [ -f "$SETTINGS" ]; then
     source "$SETTINGS"
 fi
@@ -154,17 +154,17 @@ MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
 
 if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
   if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
-    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and Automover.\nConsider uninstalling one to avoid incompatibility issues"
+    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and automover_beta.\nConsider uninstalling one to avoid incompatibility issues"
   fi
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/automover/ -maxdepth 1 -type f -name "unraid-automover-*.txz" ! -name "unraid-automover-2026.02.25.03-noarch-1.txz" -delete
+find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.02.25.03-noarch-1.txz" -delete
 
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION (NEW CRON-ONLY MODEL)
 # ==========================================================
-CRON_CMD="/usr/local/emhttp/plugins/automover/helpers/automover.sh &> /dev/null 2>&1"
+CRON_CMD="/usr/local/emhttp/plugins/automover_beta/helpers/automover_beta.sh &> /dev/null 2>&1"
 
 if [ "$AUTOSTART" == "no" ]; then
     rm -f "$CRON_FILE"
@@ -179,11 +179,11 @@ fi
 
 echo ""
 echo "----------------------------------------------------"
-echo " automover has been installed."
+echo " automover_beta has been installed."
 echo " Version: 2026.02.25.03"
 echo "----------------------------------------------------"
 echo ""
-echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → Automover"
+echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → automover_beta"
 echo ""
 echo ""
 echo "⚠️ It's suggested to disable unraids built in mover schedule at settings > scheduler this requires unraid 7.2.1+"
@@ -199,13 +199,13 @@ echo ""
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 <![CDATA[
-removepkg unraid-automover
-removepkg "/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz"
-removepkg "/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz"
-rm -f /boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz
-rm -f /boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz
-rm -rf /usr/local/emhttp/plugins/automover
-rm -rf /boot/config/plugins/automover
+removepkg unraid-automover_beta
+removepkg "/boot/config/plugins/automover_beta/jdupes-1.30.0-x86_64-2_slackdce.txz"
+removepkg "/boot/config/plugins/automover_beta/libjodycode-4.0.1-x86_64-2_slackdce.txz"
+rm -f /boot/config/plugins/automover_beta/jdupes-1.30.0-x86_64-2_slackdce.txz
+rm -f /boot/config/plugins/automover_beta/libjodycode-4.0.1-x86_64-2_slackdce.txz
+rm -rf /usr/local/emhttp/plugins/automover_beta
+rm -rf /boot/config/plugins/automover_beta
 ]]>
 </INLINE>
 </FILE>

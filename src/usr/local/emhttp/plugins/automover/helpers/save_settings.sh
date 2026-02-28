@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIG="/boot/config/plugins/automover/settings.cfg"
+CONFIG="/boot/config/plugins/automover_beta/settings.cfg"
 mkdir -p "$(dirname "$CONFIG")"
 
 # Safely assign defaults if missing

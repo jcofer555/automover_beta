@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-// Accept both header and POST token (like other automover helpers)
+// Accept both header and POST token (like other automover_beta helpers)
 $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 $postToken  = $_POST['csrf_token'] ?? '';
 $cookieToken = $_COOKIE['csrf_token'] ?? '';
@@ -21,8 +21,8 @@ if ($csrfHeader !== $cookieToken && $postToken !== $cookieToken) {
 
 $log = $_POST['log'] ?? '';
 $files = [
-    'mover' => '/tmp/automover/files_moved.log',
-    'last'  => '/tmp/automover/last_run.log'
+    'mover' => '/tmp/automover_beta/files_moved.log',
+    'last'  => '/tmp/automover_beta/last_run.log'
 ];
 
 if (!isset($files[$log])) {

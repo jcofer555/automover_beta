@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-$file = '/boot/config/plugins/automover/exclusions.txt';
+$file = '/boot/config/plugins/automover_beta/exclusions.txt';
 $action = $_GET['action'] ?? '';
 
 function ensure_file($f) {

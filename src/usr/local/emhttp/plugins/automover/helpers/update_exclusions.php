@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? '';
-$EXC_FILE = '/boot/config/plugins/automover/exclusions.txt';
+$EXC_FILE = '/boot/config/plugins/automover_beta/exclusions.txt';
 $HIDE_MNT = ['user', 'user0', 'addons', 'remotes', 'disks', 'rootshare'];
 
 // --- Utility Functions ---

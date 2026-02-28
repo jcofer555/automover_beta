@@ -1,26 +1,26 @@
 #!/bin/bash
-SCRIPT_NAME="automover"
-LAST_RUN_FILE="/tmp/automover/last_run.log"
-CFG_PATH="/boot/config/plugins/automover/settings.cfg"
-AUTOMOVER_LOG="/tmp/automover/files_moved.log"
-EXCLUSIONS_FILE="/boot/config/plugins/automover/exclusions.txt"
-IN_USE_FILE="/tmp/automover/in_use_files.txt"
-STATUS_FILE="/tmp/automover/temp_logs/status.txt"
-MOVED_SHARES_FILE="/tmp/automover/temp_logs/moved_shares.txt"
-STOP_FILE="/tmp/automover/temp_logs/stopped_containers.txt"
+SCRIPT_NAME="automover_beta"
+LAST_RUN_FILE="/tmp/automover_beta/last_run.log"
+CFG_PATH="/boot/config/plugins/automover_beta/settings.cfg"
+automover_beta_LOG="/tmp/automover_beta/files_moved.log"
+EXCLUSIONS_FILE="/boot/config/plugins/automover_beta/exclusions.txt"
+IN_USE_FILE="/tmp/automover_beta/in_use_files.txt"
+STATUS_FILE="/tmp/automover_beta/temp_logs/status.txt"
+MOVED_SHARES_FILE="/tmp/automover_beta/temp_logs/moved_shares.txt"
+STOP_FILE="/tmp/automover_beta/temp_logs/stopped_containers.txt"
 
 # ==========================================================
 #  Setup directories and lock
 # ==========================================================
-mkdir -p /tmp/automover/temp_logs
-LOCK_FILE="/tmp/automover/lock.txt"
+mkdir -p /tmp/automover_beta/temp_logs
+LOCK_FILE="/tmp/automover_beta/lock.txt"
 > "$IN_USE_FILE"
-> "/tmp/automover/temp_logs/cleanup_sources.txt"
-rm -f "/tmp/automover/temp_logs/qbittorrent_pause.txt"
-rm -f "/tmp/automover/temp_logs/qbittorrent_resume.txt"
-> "/tmp/automover/qbittorrent_paused.txt"
-> "/tmp/automover/qbittorrent_resumed.txt"
-RSYNC_SPEED_FILE="/tmp/automover/temp_logs/rsync_speed.txt"
+> "/tmp/automover_beta/temp_logs/cleanup_sources.txt"
+rm -f "/tmp/automover_beta/temp_logs/qbittorrent_pause.txt"
+rm -f "/tmp/automover_beta/temp_logs/qbittorrent_resume.txt"
+> "/tmp/automover_beta/qbittorrent_paused.txt"
+> "/tmp/automover_beta/qbittorrent_resumed.txt"
+RSYNC_SPEED_FILE="/tmp/automover_beta/temp_logs/rsync_speed.txt"
 > "$RSYNC_SPEED_FILE"
 
 # ==========================================================
@@ -33,9 +33,9 @@ unraid_notify() {
   local delay="${4:-0}"
 
   if (( delay > 0 )); then
-    echo "/usr/local/emhttp/webGui/scripts/notify -e 'Automover' -s '$title' -d '$message' -i '$level'" | at now + "$delay" minutes
+    echo "/usr/local/emhttp/webGui/scripts/notify -e 'automover_beta' -s '$title' -d '$message' -i '$level'" | at now + "$delay" minutes
   else
-    /usr/local/emhttp/webGui/scripts/notify -e 'Automover' -s "$title" -d "$message" -i "$level"
+    /usr/local/emhttp/webGui/scripts/notify -e 'automover_beta' -s "$title" -d "$message" -i "$level"
   fi
 }
 
@@ -104,7 +104,7 @@ send_summary_notification() {
 
   declare -A SHARE_COUNTS
   total_moved=0
-  if [[ -f "$AUTOMOVER_LOG" && -s "$AUTOMOVER_LOG" ]]; then
+  if [[ -f "$automover_beta_LOG" && -s "$automover_beta_LOG" ]]; then
     while IFS='>' read -r _ dst; do
       dst=$(echo "$dst" | xargs)
       [[ -z "$dst" ]] && continue
@@ -112,7 +112,7 @@ send_summary_notification() {
       [[ -z "$share" ]] && continue
       ((SHARE_COUNTS["$share"]++))
       ((total_moved++))
-    done < <(grep -E ' -> ' "$AUTOMOVER_LOG")
+    done < <(grep -E ' -> ' "$automover_beta_LOG")
   fi
 
   end_time=$(date +%s)
@@ -127,7 +127,7 @@ send_summary_notification() {
     runtime="${hours}h ${mins}m"
   fi
 
-  notif_body="Automover finished moving ${total_moved} file(s) in ${runtime}."
+  notif_body="automover_beta finished moving ${total_moved} file(s) in ${runtime}."
 
   if [[ -n "$WEBHOOK_URL" ]]; then
     if (( ${#SHARE_COUNTS[@]} > 0 )); then
@@ -186,8 +186,8 @@ containers_stopped=false
 
 manage_containers() {
   local action="$1"
-  local STOP_FILE="/tmp/automover/temp_logs/stopped_containers.txt"
-  mkdir -p /tmp/automover/temp_logs
+  local STOP_FILE="/tmp/automover_beta/temp_logs/stopped_containers.txt"
+  mkdir -p /tmp/automover_beta/temp_logs
 
   if [[ "$STOP_ALL_CONTAINERS" == "yes" && "$DRY_RUN" != "yes" ]]; then
     if [[ "$action" == "stop" ]]; then
@@ -206,8 +206,8 @@ manage_containers() {
       containers_stopped=true
 
     elif [[ "$action" == "start" && "$containers_stopped" == true ]]; then
-      set_status "Starting docker containers that automover stopped"
-      echo "Starting docker containers that automover stopped" >> "$LAST_RUN_FILE"
+      set_status "Starting docker containers that automover_beta stopped"
+      echo "Starting docker containers that automover_beta stopped" >> "$LAST_RUN_FILE"
       if [[ -f "$STOP_FILE" ]]; then
         while read -r cname; do
           [[ -z "$cname" ]] && continue
@@ -265,7 +265,7 @@ cleanup() {
 }
 trap 'cleanup 0' SIGINT SIGTERM SIGHUP SIGQUIT
 
-rm -f /tmp/automover/temp_logs/done.txt
+rm -f /tmp/automover_beta/temp_logs/done.txt
 > "$MOVED_SHARES_FILE"
 
 # ==========================================================
@@ -273,13 +273,13 @@ rm -f /tmp/automover/temp_logs/done.txt
 # ==========================================================
 run_qbit_script() {
   local action="$1"
-  local python_script="/usr/local/emhttp/plugins/automover/helpers/qbittorrent_script.py"
-  local paused_file="/tmp/automover/qbittorrent_paused.txt"
-  local resumed_file="/tmp/automover/qbittorrent_resumed.txt"
-  local tmp_out="/tmp/automover/temp_logs/qbittorrent_${action}.txt"
+  local python_script="/usr/local/emhttp/plugins/automover_beta/helpers/qbittorrent_script.py"
+  local paused_file="/tmp/automover_beta/qbittorrent_paused.txt"
+  local resumed_file="/tmp/automover_beta/qbittorrent_resumed.txt"
+  local tmp_out="/tmp/automover_beta/temp_logs/qbittorrent_${action}.txt"
   local status_filter="$QBITTORRENT_STATUS"
 
-  mkdir -p /tmp/automover/temp_logs
+  mkdir -p /tmp/automover_beta/temp_logs
   [[ ! -f "$python_script" ]] && echo "Qbittorrent script not found: $python_script" >> "$LAST_RUN_FILE" && return
 
   # override status filter for resume
@@ -393,7 +393,7 @@ if [[ "$1" == "--pool" && -n "$2" ]]; then
 fi
 
 # ==========================================================
-#  Skip scheduled runs if Automover is stopped (unless Move Now)
+#  Skip scheduled runs if automover_beta is stopped (unless Move Now)
 # ==========================================================
 if [[ "$MOVE_NOW" != true ]]; then
   if [[ -f "$STATUS_FILE" && "$(cat "$STATUS_FILE")" == "Stopped" ]]; then
@@ -697,7 +697,7 @@ copy_empty_dirs() {
             mkdir -p "$dst_dir"
             chown "$src_owner:$src_group" "$dst_dir"
             chmod "$src_perms" "$dst_dir"
-            echo "Created empty directory: $dst_dir" >> "$AUTOMOVER_LOG"
+            echo "Created empty directory: $dst_dir" >> "$automover_beta_LOG"
         fi
     done
 }
@@ -859,7 +859,7 @@ if [[ "$pre_move_done" != "yes" && "$eligible_count" -ge 1 ]]; then
   # --- Send start notification only once when actual move begins ---
 if [[ "$ENABLE_NOTIFICATIONS" == "yes" && "$sent_start_notification" != "yes" && "$eligible_count" -ge 1 ]]; then
   title="Session started"
-  message="Automover is beginning to move eligible files."
+  message="automover_beta is beginning to move eligible files."
 
   if [[ -n "$WEBHOOK_URL" ]]; then
     send_discord_message "$title" "$message" 16776960  # yellow/orange color
@@ -930,8 +930,8 @@ manage_containers stop
 
 # --- Clear mover log only once when the first move begins ---
 if [[ "$pre_move_done" != "yes" && "$eligible_count" -ge 1 ]]; then
-  if [[ -f "$AUTOMOVER_LOG" ]]; then
-    rm -f "$AUTOMOVER_LOG"
+  if [[ -f "$automover_beta_LOG" ]]; then
+    rm -f "$automover_beta_LOG"
   fi
 fi
 pre_move_done="yes"
@@ -941,10 +941,10 @@ pre_move_done="yes"
   set_status "Moving Files For Share: $share_name"
 
 # ensure directory exists
-mkdir -p /tmp/automover/temp_logs
+mkdir -p /tmp/automover_beta/temp_logs
 
 # use fixed path instead of mktemp
-tmpfile="/tmp/automover/temp_logs/eligible_files.txt"
+tmpfile="/tmp/automover_beta/temp_logs/eligible_files.txt"
 
 # write eligible items into the file
 printf '%s\n' "${eligible_items[@]}" > "$tmpfile"
@@ -1032,12 +1032,12 @@ sleep 1
 
 if [[ "$DRY_RUN" == "yes" ]]; then
   # Log what WOULD be moved
-  echo "$srcfile -> $dstfile" >> "$AUTOMOVER_LOG"
+  echo "$srcfile -> $dstfile" >> "$automover_beta_LOG"
 else
   # Real move
   if [[ -f "$dstfile" ]]; then
     ((file_count_moved++))
-    echo "$srcfile -> $dstfile" >> "$AUTOMOVER_LOG"
+    echo "$srcfile -> $dstfile" >> "$automover_beta_LOG"
   fi
 fi
   done < "$tmpfile"
@@ -1047,7 +1047,7 @@ fi
 if (( file_count_moved > 0 )); then
   moved_anything=true
   echo "$share_name" >> "$MOVED_SHARES_FILE"
-  echo "$src" >> /tmp/automover/temp_logs/cleanup_sources.txt
+  echo "$src" >> /tmp/automover_beta/temp_logs/cleanup_sources.txt
 fi
   [[ "$STOP_TRIGGERED" == true ]] && break
 done
@@ -1208,7 +1208,7 @@ guard_pool_path() {
 # ==========================================================
 set_status "Cleaning Up"
 
-if [[ "$moved_anything" == true && -s /tmp/automover/temp_logs/cleanup_sources.txt ]]; then
+if [[ "$moved_anything" == true && -s /tmp/automover_beta/temp_logs/cleanup_sources.txt ]]; then
 
   while IFS= read -r src_path; do
     [[ -z "$src_path" ]] && continue
@@ -1241,7 +1241,7 @@ if [[ "$moved_anything" == true && -s /tmp/automover/temp_logs/cleanup_sources.t
       done
     fi
 
-  done < <(sort -u /tmp/automover/temp_logs/cleanup_sources.txt)
+  done < <(sort -u /tmp/automover_beta/temp_logs/cleanup_sources.txt)
 
   echo "Cleanup of empty folders/datasets finished" >> "$LAST_RUN_FILE"
 
@@ -1302,9 +1302,9 @@ fi
 # ==========================================================
 if [[ "$ENABLE_JDUPES" == "yes" && "$DRY_RUN" != "yes" && "$moved_anything" == true ]]; then
   set_status "Running Jdupes"
-  mkdir -p /tmp/automover/temp_logs
+  mkdir -p /tmp/automover_beta/temp_logs
   if command -v jdupes >/dev/null 2>&1; then
-    TEMP_LIST="/tmp/automover/temp_logs/jdupes_list.txt"
+    TEMP_LIST="/tmp/automover_beta/temp_logs/jdupes_list.txt"
     HASH_DIR="$HASH_PATH"
     HASH_DB="${HASH_DIR}/jdupes_hash_database.db"
 
@@ -1322,7 +1322,7 @@ if [[ "$ENABLE_JDUPES" == "yes" && "$DRY_RUN" != "yes" && "$moved_anything" == t
     fi
 
     # get list of moved files (dest side)
-    grep -E -- ' -> ' "$AUTOMOVER_LOG" | awk -F'->' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' > "$TEMP_LIST"
+    grep -E -- ' -> ' "$automover_beta_LOG" | awk -F'->' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' > "$TEMP_LIST"
 
     if [[ ! -s "$TEMP_LIST" ]]; then
       echo "No moved files found, skipping jdupes step" >> "$LAST_RUN_FILE"
@@ -1397,19 +1397,19 @@ fi
 # ==========================================================
 #  Final check and backup handling
 # ==========================================================
-mkdir -p "$(dirname "$AUTOMOVER_LOG")"
+mkdir -p "$(dirname "$automover_beta_LOG")"
 
 # ==========================================================
-# Final automover_log handling with proper DRY RUN behavior
+# Final automover_beta_log handling with proper DRY RUN behavior
 # ==========================================================
 if [[ "$DRY_RUN" == "yes" ]]; then
   :
 else
-  if [[ "$moved_anything" == "true" && -s "$AUTOMOVER_LOG" ]]; then
-    cp -f "$AUTOMOVER_LOG" "${AUTOMOVER_LOG%/*}/files_moved_prev.log"
+  if [[ "$moved_anything" == "true" && -s "$automover_beta_LOG" ]]; then
+    cp -f "$automover_beta_LOG" "${automover_beta_LOG%/*}/files_moved_prev.log"
   else
-    : > "$AUTOMOVER_LOG"
-    echo "No files moved for this run" >> "$AUTOMOVER_LOG"
+    : > "$automover_beta_LOG"
+    echo "No files moved for this run" >> "$automover_beta_LOG"
   fi
 fi
 
@@ -1474,8 +1474,8 @@ if [[ "$ENABLE_SCRIPTS" == "yes" && -n "$POST_SCRIPT" ]]; then
 fi
 
 log_session_end
-mkdir -p /tmp/automover/temp_logs
-echo "done" > /tmp/automover/temp_logs/done.txt
+mkdir -p /tmp/automover_beta/temp_logs
+echo "done" > /tmp/automover_beta/temp_logs/done.txt
 
 # Reset status and release lock
 set_status "$PREV_STATUS"

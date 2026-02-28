@@ -1,5 +1,5 @@
 <?php
-$flag = '/boot/config/plugins/automover/mover_warning_dismissed.txt';
+$flag = '/boot/config/plugins/automover_beta/mover_warning_dismissed.txt';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     echo json_encode(['dismissed' => file_exists($flag)]);
