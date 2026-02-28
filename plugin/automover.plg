@@ -1,0 +1,213 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN>
+
+<PLUGIN 
+  name="automover"
+  author="jcofer555"
+  version="2026.02.25.03"
+  launch="Settings/Automover"
+  pluginURL="https://raw.githubusercontent.com/jcofer555/automover/main/plugin/automover.plg"
+  support="https://forums.unraid.net/topic/192216-automover-for-unraid/"
+  min="7.1.0"
+  
+  icon="icon.png"
+>
+
+<CHANGES>
+<![CDATA[
+
+### 2026.02.25.03
+
+- Log display updates faster now
+
+### 2026.02.25.01
+
+- Added copy and up and down arrow buttons to log section
+
+### 2026.02.20.01
+
+- Fix cleanup
+
+
+For older releases, see https://github.com/jcofer555/automover/releases
+]]>
+</CHANGES>
+
+<FILE Name="/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz">
+<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/jdupes-1.30.0-x86_64-2_slackdce.txz</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz">
+<URL>https://github.com/jcofer555/automover/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
+</FILE>
+
+<FILE Name="/boot/config/plugins/automover/unraid-automover-2026.02.25.03-noarch-1.txz">
+<URL>https://github.com/jcofer555/automover/releases/download/2026.02.25.03/unraid-automover-2026.02.25.03-noarch-1.txz</URL>
+<SHA256>0e32180773235b779934f9415f99bbf817c93479cb80ed6ae77a8dd589ba0f2c</SHA256>
+</FILE>
+
+<!-- ==========================================================
+     INSTALL SCRIPT
+========================================================== -->
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+# ==========================================================
+#  INSTALL / UPGRADE LOGIC
+# ==========================================================
+
+PACKAGE_TXZ="/boot/config/plugins/automover/unraid-automover-2026.02.25.03-noarch-1.txz"
+USER_CFG="/boot/config/plugins/automover/settings.cfg"
+DEFAULT_CFG="/usr/local/emhttp/plugins/automover/helpers/default_settings.cfg"
+TMP_CFG="/tmp/automover_settings.tmp"
+CRON_FILE="/boot/config/plugins/automover/automover.cron"
+
+# Install the package
+upgradepkg --install-new "$PACKAGE_TXZ"
+upgradepkg --install-new "/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz"
+upgradepkg --install-new "/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz"
+
+# Ordered config keys (new cron-only model)
+ordered_keys=(
+    "POOL_NAME"
+    "THRESHOLD"
+    "DRY_RUN"
+    "ALLOW_DURING_PARITY"
+    "AUTOSTART"
+    "AGE_BASED_FILTER"
+    "AGE_DAYS"
+    "SIZE_BASED_FILTER"
+    "SIZE_MB"
+    "EXCLUSIONS_ENABLED"
+    "QBITTORRENT_SCRIPT"
+    "QBITTORRENT_HOST"
+    "QBITTORRENT_USERNAME"
+    "QBITTORRENT_PASSWORD"
+    "QBITTORRENT_DAYS_FROM"
+    "QBITTORRENT_DAYS_TO"
+    "QBITTORRENT_STATUS"
+    "HIDDEN_FILTER"
+    "FORCE_RECONSTRUCTIVE_WRITE"
+    "CONTAINER_NAMES"
+    "ENABLE_JDUPES"
+    "HASH_PATH"
+    "ENABLE_CLEANUP"
+    "CRON_MODE"
+    "MINUTES_FREQUENCY"
+    "HOURLY_FREQUENCY"
+    "DAILY_TIME"
+    "WEEKLY_DAY"
+    "WEEKLY_TIME"
+    "MONTHLY_DAY"
+    "MONTHLY_TIME"
+    "CUSTOM_CRON"
+    "CRON_EXPRESSION"
+    "STOP_THRESHOLD"
+    "ENABLE_NOTIFICATIONS"
+    "WEBHOOK_URL"
+    "MANUAL_MOVE"
+    "STOP_ALL_CONTAINERS"
+    "ENABLE_TRIM"
+    "ENABLE_SCRIPTS"
+    "PRE_SCRIPT"
+    "POST_SCRIPT"
+    "PRIORITIES"
+    "PROCESS_PRIORITY"
+    "IO_PRIORITY"
+)
+
+# ==========================================================
+#  CONFIG MANAGEMENT
+# ==========================================================
+if [ ! -f "$USER_CFG" ]; then
+    cp "$DEFAULT_CFG" "$USER_CFG"
+else
+    # Add missing keys from default
+    while IFS='=' read -r key val; do
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        if ! grep -q -E "^[[:space:]]*${key}[[:space:]]*=" "$USER_CFG"; then
+            echo "$key=$val" >> "$USER_CFG"
+        fi
+    done < "$DEFAULT_CFG"
+fi
+
+# Rebuild ordered version (only known keys, drop extra lines)
+{
+    for key in "${ordered_keys[@]}"; do
+        grep -E "^[[:space:]]*${key}[[:space:]]*=" "$USER_CFG"
+    done
+} > "$TMP_CFG"
+
+mv "$TMP_CFG" "$USER_CFG"
+
+# ==========================================================
+#  LOAD SETTINGS & SETUP CRON
+# ==========================================================
+SETTINGS="/boot/config/plugins/automover/settings.cfg"
+if [ -f "$SETTINGS" ]; then
+    source "$SETTINGS"
+fi
+
+# === Check for Mover Tuning plugin ===
+MOVER_TUNING="/boot/config/plugins/ca.mover.tuning.plg"
+MOVER_TUNING_DIR="/usr/local/emhttp/plugins/ca.mover.tuning"
+
+if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
+  if [ -f "$MOVER_TUNING" ] || [ -d "$MOVER_TUNING_DIR" ]; then
+    echo -e "⚠️ Mover Tuning plugin appears to be installed. Having both can result in conflicts between Mover Tuning and Automover.\nConsider uninstalling one to avoid incompatibility issues"
+  fi
+fi
+
+# Remove older txz packages (keep only the current one)
+find /boot/config/plugins/automover/ -maxdepth 1 -type f -name "unraid-automover-*.txz" ! -name "unraid-automover-2026.02.25.03-noarch-1.txz" -delete
+
+# ==========================================================
+#  HANDLE AUTOSTART + CRON GENERATION (NEW CRON-ONLY MODEL)
+# ==========================================================
+CRON_CMD="/usr/local/emhttp/plugins/automover/helpers/automover.sh &> /dev/null 2>&1"
+
+if [ "$AUTOSTART" == "no" ]; then
+    rm -f "$CRON_FILE"
+else
+    if [ -n "$CRON_EXPRESSION" ]; then
+        echo "${CRON_EXPRESSION} ${CRON_CMD}" > "$CRON_FILE"
+    else
+        rm -f "$CRON_FILE"
+    fi
+    update_cron
+fi
+
+echo ""
+echo "----------------------------------------------------"
+echo " automover has been installed."
+echo " Version: 2026.02.25.03"
+echo "----------------------------------------------------"
+echo ""
+echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → Automover"
+echo ""
+echo ""
+echo "⚠️ It's suggested to disable unraids built in mover schedule at settings > scheduler this requires unraid 7.2.1+"
+echo ""
+
+]]>
+</INLINE>
+</FILE>
+
+<!-- ==========================================================
+     REMOVE SCRIPT
+========================================================== -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+removepkg unraid-automover
+removepkg "/boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz"
+removepkg "/boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz"
+rm -f /boot/config/plugins/automover/jdupes-1.30.0-x86_64-2_slackdce.txz
+rm -f /boot/config/plugins/automover/libjodycode-4.0.1-x86_64-2_slackdce.txz
+rm -rf /usr/local/emhttp/plugins/automover
+rm -rf /boot/config/plugins/automover
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>
