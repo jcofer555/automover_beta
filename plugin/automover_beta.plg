@@ -4,7 +4,7 @@
 <PLUGIN 
   name="automover_beta"
   author="jcofer555"
-  version="2026.02.28.02"
+  version="2026.03.02.01"
   launch="Settings/automover_beta"
   pluginURL="https://raw.githubusercontent.com/jcofer555/automover_beta/main/plugin/automover_beta.plg"
   support="https://forums.unraid.net/topic/192216-automover_beta-for-unraid/"
@@ -15,6 +15,10 @@
 
 <CHANGES>
 <![CDATA[
+
+### 2026.03.02.01
+
+- 1
 
 ### 2026.02.28.02
 
@@ -33,9 +37,9 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 <URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.02.28.02-noarch-1.txz">
-<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.02.28.02/unraid-automover_beta-2026.02.28.02-noarch-1.txz</URL>
-<SHA256>6ab309f0cb9d2f1aaac3c23f447526c44613bf9fbf0d36966be22ba3a459fbd6</SHA256>
+<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.02.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.03.02.01/unraid-automover_beta-2026.03.02.01-noarch-1.txz</URL>
+<SHA256>44f6c1333a8b3ef208a294afc37ae5d291bd6d6786a51832e2eab348828b270f</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -48,7 +52,7 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.02.28.02-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.02.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/automover_beta/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/automover_beta/helpers/default_settings.cfg"
 TMP_CFG="/tmp/automover_beta_settings.tmp"
@@ -59,53 +63,62 @@ upgradepkg --install-new "$PACKAGE_TXZ"
 upgradepkg --install-new "/boot/config/plugins/automover_beta/jdupes-1.30.0-x86_64-2_slackdce.txz"
 upgradepkg --install-new "/boot/config/plugins/automover_beta/libjodycode-4.0.1-x86_64-2_slackdce.txz"
 
+# Ensure tmp directory exists
+mkdir -p /tmp/automover_beta
+
 # Ordered config keys (new cron-only model)
 ordered_keys=(
-    "POOL_NAME"
-    "THRESHOLD"
-    "DRY_RUN"
-    "ALLOW_DURING_PARITY"
-    "AUTOSTART"
     "AGE_BASED_FILTER"
     "AGE_DAYS"
-    "SIZE_BASED_FILTER"
-    "SIZE_MB"
-    "EXCLUSIONS_ENABLED"
-    "QBITTORRENT_SCRIPT"
-    "QBITTORRENT_HOST"
-    "QBITTORRENT_USERNAME"
-    "QBITTORRENT_PASSWORD"
-    "QBITTORRENT_DAYS_FROM"
-    "QBITTORRENT_DAYS_TO"
-    "QBITTORRENT_STATUS"
-    "HIDDEN_FILTER"
-    "FORCE_RECONSTRUCTIVE_WRITE"
+    "ALLOW_DURING_PARITY"
+    "AUTOSTART"
     "CONTAINER_NAMES"
-    "ENABLE_JDUPES"
-    "HASH_PATH"
-    "ENABLE_CLEANUP"
+    "CRON_EXPRESSION"
     "CRON_MODE"
-    "MINUTES_FREQUENCY"
-    "HOURLY_FREQUENCY"
+    "CUSTOM_CRON"
     "DAILY_TIME"
-    "WEEKLY_DAY"
-    "WEEKLY_TIME"
+    "DRY_RUN"
+    "ENABLE_CLEANUP"
+    "ENABLE_JDUPES"
+    "ENABLE_NOTIFICATIONS"
+    "ENABLE_SCRIPTS"
+    "ENABLE_TRIM"
+    "EXCLUSIONS_ENABLED"
+    "FORCE_RECONSTRUCTIVE_WRITE"
+    "HASH_PATH"
+    "HIDDEN_FILTER"
+    "HOURLY_FREQUENCY"
+    "IO_PRIORITY"
+    "MANUAL_MOVE"
+    "MINUTES_FREQUENCY"
     "MONTHLY_DAY"
     "MONTHLY_TIME"
-    "CUSTOM_CRON"
-    "CRON_EXPRESSION"
-    "STOP_THRESHOLD"
-    "ENABLE_NOTIFICATIONS"
-    "WEBHOOK_URL"
-    "MANUAL_MOVE"
-    "STOP_ALL_CONTAINERS"
-    "ENABLE_TRIM"
-    "ENABLE_SCRIPTS"
-    "PRE_SCRIPT"
+    "NOTIFICATION_SERVICE"
+    "POOL_NAME"
     "POST_SCRIPT"
+    "PRE_SCRIPT"
     "PRIORITIES"
     "PROCESS_PRIORITY"
-    "IO_PRIORITY"
+    "PUSHOVER_USER_KEY"
+    "QBITTORRENT_DAYS_FROM"
+    "QBITTORRENT_DAYS_TO"
+    "QBITTORRENT_HOST"
+    "QBITTORRENT_PASSWORD"
+    "QBITTORRENT_SCRIPT"
+    "QBITTORRENT_STATUS"
+    "QBITTORRENT_USERNAME"
+    "SIZE_BASED_FILTER"
+    "SIZE_MB"
+    "STOP_ALL_CONTAINERS"
+    "STOP_THRESHOLD"
+    "THRESHOLD"
+    "WEBHOOK_DISCORD"
+    "WEBHOOK_GOTIFY"
+    "WEBHOOK_NTFY"
+    "WEBHOOK_PUSHOVER"
+    "WEBHOOK_SLACK"
+    "WEEKLY_DAY"
+    "WEEKLY_TIME"
 )
 
 # ==========================================================
@@ -151,7 +164,10 @@ if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.02.28.02-noarch-1.txz" -delete
+find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.03.02.01-noarch-1.txz" -delete
+
+# Ensure helper scripts are executable
+chmod +x /usr/local/emhttp/plugins/automover_beta/helpers/*
 
 # ==========================================================
 #  HANDLE AUTOSTART + CRON GENERATION (NEW CRON-ONLY MODEL)
@@ -172,7 +188,7 @@ fi
 echo ""
 echo "----------------------------------------------------"
 echo " automover_beta has been installed."
-echo " Version: 2026.02.28.02"
+echo " Version: 2026.03.02.01"
 echo "----------------------------------------------------"
 echo ""
 echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → automover_beta"
