@@ -1,65 +1,50 @@
 <?php
-header("Content-Type: application/json");
+declare(strict_types=1);
 
-$lock      = "/tmp/automover_beta/lock.txt";
-$status    = "/tmp/automover_beta/temp_logs/status.txt";
-$last      = "/tmp/automover_beta/last_run.log";
+// ── Constants ─────────────────────────────────────────────────────────────────
+const LOCK_FILE   = '/tmp/automover_beta/lock.txt';
+const STATUS_FILE = '/tmp/automover_beta/temp_logs/status.txt';
 
-// ==============================
-// CSRF VALIDATION
-// ==============================
-$cookie = $_COOKIE['csrf_token'] ?? '';
-$posted = $_POST['csrf_token'] ?? '';
+// ── Entry point ───────────────────────────────────────────────────────────────
+header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals($cookie, $posted)) {
-    echo json_encode(["ok" => false, "error" => "Invalid CSRF token"]);
+// ── CSRF validation ───────────────────────────────────────────────────────────
+$cookie_str = $_COOKIE['csrf_token'] ?? '';
+$posted_str = $_POST['csrf_token']   ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals($cookie_str, $posted_str)) {
+    echo json_encode(['ok' => false, 'error' => 'Invalid CSRF token']);
     exit;
 }
 
-// ==========================================================
-// Set status to stopping
-// ==========================================================
-file_put_contents($status, "Stopping automover_beta…");
+// ── Set stopping status ───────────────────────────────────────────────────────
+file_put_contents(STATUS_FILE, 'Stopping automover_beta…');
 
-// ==========================================================
-// Kill automover_beta shell scripts and rsync operations
-// ==========================================================
+// ── Kill running processes ────────────────────────────────────────────────────
+exec('pkill -f ' . escapeshellarg('automover_beta.sh')    . ' 2>/dev/null');
+exec('pkill -f ' . escapeshellarg('rsync -aH')            . ' 2>/dev/null');
+exec('pkill -f ' . escapeshellarg('rsync --dry-run')      . ' 2>/dev/null');
+exec('pkill -f ' . escapeshellarg('fuser -m')             . ' 2>/dev/null');
+exec('pkill -f ' . escapeshellarg('find .*automover_beta')  . ' 2>/dev/null');
 
-// Kill any automover_beta.sh loops
-exec("pkill -f 'automover_beta.sh' 2>/dev/null");
-
-// Kill any rsync processes started by automover_beta
-exec("pkill -f 'rsync -aH' 2>/dev/null");
-exec("pkill -f 'rsync --dry-run' 2>/dev/null");
-
-// Kill any find/fuser processes automover_beta may have spawned
-exec("pkill -f 'fuser -m' 2>/dev/null");
-exec("pkill -f 'find .*automover_beta' 2>/dev/null");
-
-// ==========================================================
-// Kill process referenced by lock file (if alive)
-// ==========================================================
-if (file_exists($lock)) {
-    $pid = intval(trim(file_get_contents($lock)));
-
-    if ($pid > 0) {
-        // If process is alive, kill it
-        if (posix_kill($pid, 0)) {
-            posix_kill($pid, SIGTERM);
-            usleep(200000); // give it 0.2 sec to clean up
-        }
+// ── Kill process from lock file ───────────────────────────────────────────────
+if (file_exists(LOCK_FILE)) {
+    $pid_int = (int) trim((string) file_get_contents(LOCK_FILE));
+    if ($pid_int > 0 && posix_kill($pid_int, 0)) {
+        posix_kill($pid_int, SIGTERM);
+        usleep(200000);
     }
-
-    @unlink($lock);
+    @unlink(LOCK_FILE);
 }
 
-// ==========================================================
-// Reset status file so WebUI sees everything stopped
-// ==========================================================
-file_put_contents($status, "Stopped");
+// ── Reset status ──────────────────────────────────────────────────────────────
+file_put_contents(STATUS_FILE, 'Stopped');
 
-// ==========================================================
-// Success
-// ==========================================================
-echo json_encode(["ok" => true]);
-?>
+// ── Response ──────────────────────────────────────────────────────────────────
+echo json_encode([
+    'status'    => 'success',
+    'timestamp' => date('Y-m-d H:i:s'),
+    'data'      => [
+        'ok' => true,
+    ],
+]);

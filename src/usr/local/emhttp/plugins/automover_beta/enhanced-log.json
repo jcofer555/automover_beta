@@ -1,6 +1,7 @@
 {
     "files": [
         "/tmp/automover_beta/last_run.log",
-        "/tmp/automover_beta/files_moved.log"
+        "/tmp/automover_beta/files_moved.log",
+        "/tmp/automover_beta/automover_beta-debug.log"
     ]
 }
