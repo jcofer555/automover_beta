@@ -611,14 +611,14 @@ hash_string() {
 
 safe_rmdir() {
     local dir_str="$1"
-    local hash_str
-    hash_str="$(hash_string "${dir_str}")"
     if [[ "${DRY_RUN:-no}" == "yes" ]]; then
+        local hash_str
+        hash_str="$(hash_string "${dir_str}")"
         log_info "DRY-RUN: would remove empty folder [${hash_str}] ${dir_str}"
         log_debug "DRY-RUN rmdir: ${dir_str}"
     else
         if rmdir "${dir_str}" 2>/dev/null; then
-            log_debug "Removed empty folder [${hash_str}]: ${dir_str}"
+            log_debug "Removed empty folder: ${dir_str}"
         fi
     fi
 }
@@ -1267,10 +1267,14 @@ if [[ "${moved_anything_bool}" == true && -s "${CLEANUP_SOURCES_FILE}" ]]; then
                 ;;
         esac
 
-        find "${src_path_str}" -depth -type d | while IFS= read -r dir_str; do
-            [[ "${dir_str}" == "${src_path_str}" ]] && continue
-            safe_rmdir "${dir_str}"
-        done
+        if [[ "${DRY_RUN:-no}" == "yes" ]]; then
+            find "${src_path_str}" -mindepth 1 -depth -type d -empty | while IFS= read -r dir_str; do
+                safe_rmdir "${dir_str}"
+            done
+        else
+            log_debug "Removing empty dirs under: ${src_path_str}"
+            find "${src_path_str}" -mindepth 1 -depth -type d -empty -exec rmdir {} \; 2>/dev/null || true
+        fi
 
         if command -v zfs > /dev/null 2>&1; then
             mapfile -t datasets_arr < <(zfs list -H -o name,mountpoint 2>/dev/null \
@@ -1315,9 +1319,20 @@ if [[ "${ENABLE_CLEANUP:-no}" == "yes" ]]; then
             return 1
         }
 
-        find "${pool_path_str}" -depth -type d | while IFS= read -r dir_str; do
-            is_excluded "${dir_str}" && continue
-            safe_rmdir "${dir_str}"
+        # Scan only top-level share directories on the pool rather than the
+        # entire pool tree — avoids a slow full-pool find on large pools.
+        for share_dir_str in "${pool_path_str}"/*/; do
+            [[ -d "${share_dir_str}" ]] || continue
+            share_dir_str="${share_dir_str%/}"
+            is_excluded "${share_dir_str}" && continue
+            log_debug "Pool-wide cleanup scanning: ${share_dir_str}"
+            if [[ "${DRY_RUN:-no}" == "yes" ]]; then
+                find "${share_dir_str}" -mindepth 1 -depth -type d -empty | while IFS= read -r dir_str; do
+                    safe_rmdir "${dir_str}"
+                done
+            else
+                find "${share_dir_str}" -mindepth 1 -depth -type d -empty -exec rmdir {} \; 2>/dev/null || true
+            fi
         done
 
         if command -v zfs > /dev/null 2>&1; then
