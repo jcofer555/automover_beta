@@ -138,16 +138,22 @@ log_debug "Previous status: ${prev_status_str}"
 # ==========================================================
 #  LOCK
 # ==========================================================
-if [[ -f "${LOCK_FILE}" ]]; then
-    lock_pid_int="$(cat "${LOCK_FILE}")"
-    if ps -p "${lock_pid_int}" > /dev/null 2>&1; then
-        log_debug "Another instance is running (PID ${lock_pid_int}). Exiting."
-        exit 0
-    else
-        log_warn "Stale lock file found (PID ${lock_pid_int} not running). Removing."
-        rm -f "${LOCK_FILE}"
+if [[ -z "${SCHEDULE_ID:-}" ]]; then
+    # Direct or Move Now invocation — check for a running instance ourselves
+    if [[ -f "${LOCK_FILE}" ]]; then
+        lock_pid_int="$(grep -m1 '^PID=' "${LOCK_FILE}" | cut -d'=' -f2)"
+        [[ -z "${lock_pid_int}" ]] && lock_pid_int="$(head -1 "${LOCK_FILE}" 2>/dev/null)"
+        if [[ -n "${lock_pid_int}" ]] && ps -p "${lock_pid_int}" > /dev/null 2>&1; then
+            log_debug "Another instance is running (PID ${lock_pid_int}). Exiting."
+            exit 0
+        else
+            log_warn "Stale lock file found (PID ${lock_pid_int:-unknown} not running). Removing."
+            rm -f "${LOCK_FILE}"
+        fi
     fi
 fi
+# Write our PID — takes over from PHP's metadata for scheduled runs,
+# or establishes the lock for direct runs.
 echo $$ > "${LOCK_FILE}"
 log_debug "Lock acquired (PID $$)"
 
@@ -162,7 +168,23 @@ cleanup() {
     log_debug "Lock released. Exiting with code ${exit_code_int}."
     exit "${exit_code_int}"
 }
-trap 'cleanup 0' SIGINT SIGTERM SIGHUP SIGQUIT
+
+# Graceful stop — called when stop button sends SIGTERM.
+# Rsync is in a foreground pipeline so it will finish its current file
+# before this handler runs. We log the stop, run session end, then exit.
+_stop_requested_bool=false
+handle_stop() {
+    if [[ "${_stop_requested_bool}" == true ]]; then return; fi
+    _stop_requested_bool=true
+    log_info "Stop requested — finishing current file then stopping"
+    log_debug "SIGTERM received. Finishing current rsync then stopping."
+    # Let the current rsync finish (it runs in the foreground), then the
+    # main loop will hit this flag check after rsync returns and break out.
+    # We raise an exit after a brief wait to unblock any sleep/wait calls.
+    ( sleep 2 && kill -TERM $$ 2>/dev/null ) &
+}
+trap 'handle_stop' SIGTERM
+trap 'cleanup 0' SIGINT SIGHUP SIGQUIT
 
 # ==========================================================
 #  MOVE NOW OVERRIDE
@@ -190,24 +212,57 @@ if [[ ! -f "${CFG_PATH}" ]]; then
     cleanup 0
 fi
 
+# List of all config keys the script uses
+CONFIG_VARS=(
+    AGE_BASED_FILTER AGE_DAYS ALLOW_DURING_PARITY AUTOSTART
+    CONTAINER_NAMES CRON_EXPRESSION CRON_MODE
+    DAILY_MINUTE DAILY_TIME DRY_RUN
+    ENABLE_CLEANUP ENABLE_JDUPES ENABLE_NOTIFICATIONS ENABLE_SCRIPTS ENABLE_TRIM
+    EXCLUSIONS_ENABLED FORCE_RECONSTRUCTIVE_WRITE
+    HASH_PATH HIDDEN_FILTER HOURLY_FREQUENCY
+    INTERVAL IO_PRIORITY
+    MANUAL_MOVE MONTHLY_DAY MONTHLY_MINUTE MONTHLY_TIME
+    NOTIFICATION_SERVICE POOL_NAME POST_SCRIPT PRE_SCRIPT
+    PRIORITIES PROCESS_PRIORITY PUSHOVER_USER_KEY
+    QBITTORRENT_DAYS_FROM QBITTORRENT_DAYS_TO QBITTORRENT_HOST
+    QBITTORRENT_PASSWORD QBITTORRENT_SCRIPT QBITTORRENT_STATUS QBITTORRENT_USERNAME
+    SIZE_BASED_FILTER SIZE_MB SIZE_UNIT
+    STOP_ALL_CONTAINERS STOP_THRESHOLD THRESHOLD
+    WEBHOOK_DISCORD WEBHOOK_GOTIFY WEBHOOK_NTFY WEBHOOK_PUSHOVER WEBHOOK_SLACK
+    WEEKLY_DAY WEEKLY_MINUTE WEEKLY_TIME
+)
+
+# If run_schedule.php injected settings via env vars (SCHEDULE_ID is set),
+# capture them before sourcing settings.cfg so they win after the source.
+declare -A sched_env_arr=()
+if [[ -n "${SCHEDULE_ID:-}" ]]; then
+    log_debug "Scheduled run detected (SCHEDULE_ID=${SCHEDULE_ID}) — capturing env overrides"
+    for var in "${CONFIG_VARS[@]}"; do
+        if [[ -n "${!var+x}" ]]; then
+            sched_env_arr["${var}"]="${!var}"
+        fi
+    done
+fi
+
 # shellcheck source=/dev/null
 source "${CFG_PATH}"
 log_debug "Config loaded from ${CFG_PATH}"
 
-# Apply pool override if set
+# Restore schedule env vars so they override what settings.cfg just set
+if [[ "${#sched_env_arr[@]}" -gt 0 ]]; then
+    for var in "${!sched_env_arr[@]}"; do
+        declare "${var}=${sched_env_arr[${var}]}"
+        log_debug "Schedule override: ${var}=${sched_env_arr[${var}]}"
+    done
+fi
+
+# Apply pool override if set (--pool flag takes highest priority)
 if [[ -n "${POOL_NAME_OVERRIDE:-}" ]]; then
     POOL_NAME="${POOL_NAME_OVERRIDE}"
 fi
 
 # Strip quotes from all config values
-for var in AGE_DAYS THRESHOLD INTERVAL POOL_NAME DRY_RUN ALLOW_DURING_PARITY \
-           AGE_BASED_FILTER SIZE_BASED_FILTER SIZE_MB SIZE_UNIT EXCLUSIONS_ENABLED \
-           QBITTORRENT_SCRIPT QBITTORRENT_HOST QBITTORRENT_USERNAME QBITTORRENT_PASSWORD \
-           QBITTORRENT_DAYS_FROM QBITTORRENT_DAYS_TO QBITTORRENT_STATUS HIDDEN_FILTER \
-           FORCE_RECONSTRUCTIVE_WRITE CONTAINER_NAMES ENABLE_JDUPES HASH_PATH ENABLE_CLEANUP \
-           CRON_EXPRESSION STOP_THRESHOLD ENABLE_NOTIFICATIONS STOP_ALL_CONTAINERS \
-           ENABLE_TRIM ENABLE_SCRIPTS PRE_SCRIPT POST_SCRIPT \
-           PROCESS_PRIORITY IO_PRIORITY PRIORITIES; do
+for var in "${CONFIG_VARS[@]}"; do
     if [[ -n "${!var+x}" ]]; then
         eval "${var}=\"$(echo "${!var}" | tr -d '\"')\""
     fi
@@ -1176,6 +1231,14 @@ for cfg_file_str in "${SHARE_CFG_DIR}"/*.cfg; do
                 log_warn "File not found at destination after rsync: ${dstfile_str}"
             fi
         fi
+
+        # Check for stop request after each file — rsync already finished so
+        # the current file is safe. Break out to let cleanup run normally.
+        if [[ "${_stop_requested_bool}" == true ]]; then
+            log_debug "Stop flag detected after file move — breaking move loop"
+            stop_triggered_bool=true
+            break
+        fi
     done < "${ELIGIBLE_TMP_FILE}"
     rm -f "${ELIGIBLE_TMP_FILE}"
 
@@ -1516,16 +1579,21 @@ fi
 # ==========================================================
 #  SUMMARY NOTIFICATION + POST SCRIPT + DONE SIGNAL
 # ==========================================================
-send_summary_notification
+if [[ "${_stop_requested_bool}" == true ]]; then
+    log_info "Move stopped by user request"
+    log_debug "Stop requested — skipping notifications and post-script"
+else
+    send_summary_notification
 
-if [[ "${ENABLE_SCRIPTS:-no}" == "yes" && -n "${POST_SCRIPT:-}" ]]; then
-    log_step "Running post-move script: ${POST_SCRIPT}"
-    log_info "Running post-move script: ${POST_SCRIPT}"
-    if run_user_script "${POST_SCRIPT}" >> "${LAST_RUN_FILE}" 2>&1; then
-        log_info "Post-move script completed successfully"
-        log_debug "Post-move script OK: ${POST_SCRIPT}"
-    else
-        log_error "Post-move script failed: ${POST_SCRIPT}"
+    if [[ "${ENABLE_SCRIPTS:-no}" == "yes" && -n "${POST_SCRIPT:-}" ]]; then
+        log_step "Running post-move script: ${POST_SCRIPT}"
+        log_info "Running post-move script: ${POST_SCRIPT}"
+        if run_user_script "${POST_SCRIPT}" >> "${LAST_RUN_FILE}" 2>&1; then
+            log_info "Post-move script completed successfully"
+            log_debug "Post-move script OK: ${POST_SCRIPT}"
+        else
+            log_error "Post-move script failed: ${POST_SCRIPT}"
+        fi
     fi
 fi
 
