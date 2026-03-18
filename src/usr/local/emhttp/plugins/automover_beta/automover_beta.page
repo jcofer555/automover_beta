@@ -11,52 +11,53 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 // Keys that are no longer stored in settings.cfg (moved to schedules.cfg)
 const STALE_KEYS = ['CRON_EXPRESSION','CRON_MODE','DAILY_TIME','DAILY_MINUTE',
-    'HOURLY_FREQUENCY','MONTHLY_DAY','MONTHLY_MINUTE','MONTHLY_TIME',
-    'WEEKLY_DAY','WEEKLY_MINUTE','WEEKLY_TIME'];
+    'HOURLY_FREQUENCY','MONTHLY_DAY','MONTHLY_MINUTE','MONTHLY_TIME','PROCESS_PRIORITY',
+    'WEEKLY_DAY','WEEKLY_MINUTE','WEEKLY_TIME','ENABLE_CLEANUP','ENABLE_JDUPES','ENABLE_NOTIFICATIONS','ENABLE_SCRIPTS',
+    'ENABLE_TRIM','EXCLUSIONS_ENABLED','AUTOSTART','CONTAINER_NAMES','FORCE_RECONSTRUCTIVE_WRITE','HASH_PATH','SIZE_MB','PRIORITIES','QBITTORRENT_SCRIPT'];
 
 $defaults = [
-    'AGE_BASED_FILTER'           => 'no',
-    'AGE_DAYS'                   => 1,
-    'ALLOW_DURING_PARITY'        => 'no',
-    'AUTOSTART'                  => 'no',
-    'CONTAINER_NAMES'            => '',
-    'DRY_RUN'                    => 'no',
-    'ENABLE_CLEANUP'             => 'no',
-    'ENABLE_JDUPES'              => 'no',
-    'ENABLE_NOTIFICATIONS'       => 'no',
-    'ENABLE_SCRIPTS'             => 'no',
-    'ENABLE_TRIM'                => 'no',
-    'EXCLUSIONS_ENABLED'         => 'no',
-    'FORCE_RECONSTRUCTIVE_WRITE' => 'no',
-    'HASH_PATH'                  => '/mnt/user/appdata',
-    'HIDDEN_FILTER'              => 'no',
-    'IO_PRIORITY'                => 'normal',
-    'MANUAL_MOVE'                => 'no',
-    'NOTIFICATION_SERVICE'       => '',
-    'POOL_NAME'                  => 'cache',
-    'POST_SCRIPT'                => '',
-    'PRE_SCRIPT'                 => '',
-    'PRIORITIES'                 => 'no',
-    'PROCESS_PRIORITY'           => '0',
-    'PUSHOVER_USER_KEY'          => '',
-    'QBITTORRENT_DAYS_FROM'      => '0',
-    'QBITTORRENT_DAYS_TO'        => '2',
-    'QBITTORRENT_HOST'           => '',
-    'QBITTORRENT_PASSWORD'       => '',
-    'QBITTORRENT_SCRIPT'         => 'no',
-    'QBITTORRENT_STATUS'         => 'completed',
-    'QBITTORRENT_USERNAME'       => '',
-    'SIZE_BASED_FILTER'          => 'no',
-    'SIZE_MB'                    => 1,
-    'SIZE_UNIT'                  => 'MB',
-    'STOP_ALL_CONTAINERS'        => 'no',
-    'STOP_THRESHOLD'             => 0,
-    'THRESHOLD'                  => 0,
-    'WEBHOOK_DISCORD'            => '',
-    'WEBHOOK_GOTIFY'             => '',
-    'WEBHOOK_NTFY'               => '',
-    'WEBHOOK_PUSHOVER'           => '',
-    'WEBHOOK_SLACK'              => '',
+    'AGE_BASED_FILTER'       => 'no',
+    'AGE_DAYS'               => 1,
+    'ALLOW_DURING_PARITY'    => 'no',
+    'AUTOSTART_ON_BOOT'      => 'no',
+    'CLEANUP'                => 'no',
+    'CPU_AND_IO_PRIORITIES'  => 'no',
+    'CPU_PRIORITY'           => '0',
+    'DRY_RUN'                => 'no',
+    'EXCLUSIONS'             => 'no',
+    'FORCE_TURBO_WRITE'      => 'no',
+    'HASH_LOCATION'          => '/mnt/user/appdata',
+    'HIDDEN_FILTER'          => 'no',
+    'IO_PRIORITY'            => 'normal',
+    'JDUPES'                 => 'no',
+    'MANUAL_MOVE'            => 'no',
+    'NOTIFICATION_SERVICE'   => '',
+    'NOTIFICATIONS'          => 'no',
+    'POOL_NAME'              => 'cache',
+    'POST_SCRIPT'            => '',
+    'PRE_AND_POST_SCRIPTS'   => 'no',
+    'PRE_SCRIPT'             => '',
+    'PUSHOVER_USER_KEY'      => '',
+    'QBITTORRENT_DAYS_FROM'  => '0',
+    'QBITTORRENT_DAYS_TO'    => '2',
+    'QBITTORRENT_HOST'       => '',
+    'QBITTORRENT_MOVE_SCRIPT'=> 'no',
+    'QBITTORRENT_PASSWORD'   => '',
+    'QBITTORRENT_STATUS'     => 'completed',
+    'QBITTORRENT_USERNAME'   => '',
+    'SIZE'                   => 1,
+    'SIZE_BASED_FILTER'      => 'no',
+    'SIZE_UNIT'              => 'MB',
+    'STOP_ALL_CONTAINERS'    => 'no',
+    'STOP_CONTAINERS'        => '',
+    'STOP_THRESHOLD'         => 0,
+    'SSD_TRIM'               => 'no',
+    'THRESHOLD'              => 0,
+    'WEBHOOK_DISCORD'        => '',
+    'WEBHOOK_GOTIFY'         => '',
+    'WEBHOOK_NTFY'           => '',
+    'WEBHOOK_PUSHOVER'       => '',
+    'WEBHOOK_SLACK'          => '',
 ];
 $existing = file_exists(CFG_PATH) ? (parse_ini_file(CFG_PATH) ?: []) : [];
 // Remove stale cron keys if present
@@ -82,9 +83,7 @@ foreach ($sib_checks as $k=>$c) { if ($k===$cur) continue; if (file_exists($c['p
 $has_sibs=!empty($sibs); $sib_opts=$sibs; uasort($sib_opts,fn($a,$b)=>strcmp($a['label'],$b['label']));
 $notif_svcs=['Discord','Gotify','Ntfy','Pushover','Slack','Unraid'];
 $sel_svcs=array_filter(array_map('trim',explode(',',$settings['NOTIFICATION_SERVICE']??'')));
-$cron_mode=$settings['CRON_MODE']??'daily';
-if (!in_array($cron_mode,['hourly','daily','weekly','monthly'])) $cron_mode='hourly';
-$sharesFile='/var/local/emhttp/shares.ini'; $curHash=$settings['HASH_PATH']??'/mnt/user/appdata'; $sharesList=[];
+$sharesFile='/var/local/emhttp/shares.ini'; $curHash=$settings['HASH_LOCATION']??'/mnt/user/appdata'; $sharesList=[];
 if (file_exists($sharesFile)){$sh=parse_ini_file($sharesFile,true);if($sh)$sharesList=array_keys($sh);}
 if (empty($sharesList)) $sharesList=['appdata','system','domains','isos'];
 ?>
@@ -227,7 +226,7 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
 .amb-sched-dot.enabled{background:var(--ok);box-shadow:0 0 5px var(--ok);}
 .amb-sched-dot.disabled{background:var(--er);box-shadow:0 0 5px var(--er);}
 /* ── In-progress banner ─────────────────────────────────────────────────── */
-#amb-banner{display:none;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:var(--r2);padding:8px 12px;margin-bottom:8px;}
+#amb-banner{display:none;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:var(--r2);padding:8px 12px;margin-top:6px;}
 .amb-banner-inner{display:flex;align-items:center;gap:10px;}
 .amb-banner-text{color:var(--al);font-weight:700;font-size:12px;flex:1;}
 #amb-stop-toast{font-size:11px;color:var(--al);white-space:nowrap;visibility:hidden;}
@@ -243,7 +242,6 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
 <div id="amb">
 <div id="amb-g">
 
-<!-- SETTINGS COLUMN -->
 <div id="amb-sc">
 <div class="ac">
 
@@ -269,10 +267,15 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
 
 </div>
 
-<!-- AUTOMOVER PANEL -->
 <div id="aap" class="ac-body">
 
-<!-- In-progress banner (shown when Move or Run is active) -->
+<div class="asec">Controls</div>
+<div class="aact">
+  <button type="button" id="amnb">Move</button>
+  <button type="button" id="amb-schedule-btn">Schedule It</button>
+  <button type="button" id="amb-cancel-edit-btn" style="display:none;">Cancel</button>
+</div>
+
 <div id="amb-banner">
   <div class="amb-banner-inner">
     <span id="amb-banner-text" class="amb-banner-text"></span>
@@ -281,12 +284,6 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<div class="asec">Controls</div>
-<div class="aact">
-  <button type="button" id="amnb">Move</button>
-  <button type="button" id="amb-schedule-btn">Schedule It</button>
-  <button type="button" id="amb-cancel-edit-btn" style="display:none;">Cancel</button>
-</div>
 <div id="asp" class="apop"></div>
 <div id="amnp" class="apop"></div>
 
@@ -299,7 +296,7 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
 <div id="apw" class="apw">&#9888; This pool has no share with mover direction pool &rarr; array or pool &rarr; pool assigned</div>
 
 <div class="af">
-  <span class="afl" data-tip="Disk usage % that triggers the mover">Threshold (%):</span>
+  <span class="afl" data-tip="Disk usage % that the pool has to be at in order for the move to proceed">Threshold (%):</span>
   <div class="afi">
     <select id="athr"><?php $tv=(int)($settings['THRESHOLD']??0); for($i=0;$i<=100;$i++) echo'<option value="'.htmlspecialchars($i).'"'.($tv===$i?' selected':'').'>'.htmlspecialchars($i).'</option>'; ?></select>
   </div>
@@ -318,58 +315,63 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   <span class="afl" data-tip="Select scheduling frequency">Scheduling:</span>
   <div class="afi">
     <select id="acm">
-      <?php foreach(['hourly'=>'Hourly','daily'=>'Daily','weekly'=>'Weekly','monthly'=>'Monthly'] as $v=>$l): ?>
-      <option value="<?=$v?>" <?=$cron_mode===$v?'selected':''?>><?=$l?></option>
-      <?php endforeach; ?>
+      <option value="hourly">Hourly</option>
+      <option value="daily" selected>Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
     </select>
   </div>
 </div>
 
 <div id="aho" style="display:none;">
   <div class="af"><span class="afl" data-tip="How often to run">Frequency:</span>
-    <div class="afi"><select id="ahf"><?php $hf=$settings['HOURLY_FREQUENCY']??'4'; foreach([4,6,8] as $i) echo"<option value=\"$i\"".($hf==$i?' selected':'').">Every $i Hours</option>"; ?></select></div>
+    <div class="afi"><select id="ahf">
+      <option value="4">Every 4 Hours</option>
+      <option value="6">Every 6 Hours</option>
+      <option value="8">Every 8 Hours</option>
+    </select></div>
   </div>
 </div>
 <div id="ado" style="display:none;">
   <div class="af"><span class="afl" data-tip="Hour of day to run">Hour:</span>
-    <div class="afi"><select id="adt"><?php $dh=$settings['DAILY_TIME']??'0'; for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\"".((ltrim($dh,'0')||$dh==='0'?intval($dh):0)===$h?' selected':'').">$hv</option>";}?></select></div>
+    <div class="afi"><select id="adt"><?php for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\">$hv</option>";}?></select></div>
   </div>
   <div class="af"><span class="afl" data-tip="Minute to run">Minute:</span>
-    <div class="afi"><select id="adm"><?php $dm=$settings['DAILY_MINUTE']??'0'; for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\"".(intval($dm)===$m?' selected':'').">$mv</option>";}?></select></div>
+    <div class="afi"><select id="adm"><?php for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\">$mv</option>";}?></select></div>
   </div>
 </div>
 <div id="awo" style="display:none;">
   <div class="af"><span class="afl" data-tip="Day of the week to run">Day Of Week:</span>
-    <div class="afi"><select id="awd"><?php foreach(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $d) echo"<option value=\"$d\"".((($settings['WEEKLY_DAY']??'')===$d)?' selected':'').">$d</option>";?></select></div>
+    <div class="afi"><select id="awd">
+      <?php foreach(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] as $d) echo"<option value=\"$d\">$d</option>";?>
+    </select></div>
   </div>
   <div class="af"><span class="afl" data-tip="Hour of day">Hour:</span>
-    <div class="afi"><select id="awt"><?php $wh=$settings['WEEKLY_TIME']??'0'; for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\"".(intval($wh)===$h?' selected':'').">$hv</option>";}?></select></div>
+    <div class="afi"><select id="awt"><?php for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\">$hv</option>";}?></select></div>
   </div>
   <div class="af"><span class="afl" data-tip="Minute">Minute:</span>
-    <div class="afi"><select id="awm"><?php $wm=$settings['WEEKLY_MINUTE']??'0'; for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\"".(intval($wm)===$m?' selected':'').">$mv</option>";}?></select></div>
+    <div class="afi"><select id="awm"><?php for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\">$mv</option>";}?></select></div>
   </div>
 </div>
 <div id="amo" style="display:none;">
   <div class="af"><span class="afl" data-tip="Day of the month to run">Day Of Month:</span>
-    <div class="afi"><select id="amdy"><?php for($d=1;$d<=31;$d++){$dy=str_pad($d,2,'0',STR_PAD_LEFT);echo"<option value=\"$dy\"".((($settings['MONTHLY_DAY']??'')===$dy)?' selected':'').">$dy</option>";}?></select></div>
+    <div class="afi"><select id="amdy"><?php for($d=1;$d<=31;$d++){$dy=str_pad($d,2,'0',STR_PAD_LEFT);echo"<option value=\"$dy\">$dy</option>";}?></select></div>
   </div>
   <div class="af"><span class="afl" data-tip="Hour of day">Hour:</span>
-    <div class="afi"><select id="amt"><?php $mh=$settings['MONTHLY_TIME']??'0'; for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\"".(intval($mh)===$h?' selected':'').">$hv</option>";}?></select></div>
+    <div class="afi"><select id="amt"><?php for($h=0;$h<24;$h++){$hv=str_pad($h,2,'0',STR_PAD_LEFT);echo"<option value=\"$hv\">$hv</option>";}?></select></div>
   </div>
   <div class="af"><span class="afl" data-tip="Minute">Minute:</span>
-    <div class="afi"><select id="amm"><?php $mm=$settings['MONTHLY_MINUTE']??'0'; for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\"".(intval($mm)===$m?' selected':'').">$mv</option>";}?></select></div>
+    <div class="afi"><select id="amm"><?php for($m=0;$m<60;$m++){$mv=str_pad($m,2,'0',STR_PAD_LEFT);echo"<option value=\"$mv\">$mv</option>";}?></select></div>
   </div>
 </div>
 
 <div class="asec" style="margin-top:8px;">Containers</div>
 <div class="af">
   <span class="afl" data-tip="Comma-separated list of containers to stop during moves">Stop Containers:</span>
-  <div class="afi"><div class="amb-clr-wrap"><input type="text" id="acont" placeholder="e.g. qbit-manage,cross-seed" value="<?=htmlspecialchars($settings['CONTAINER_NAMES']??'')?>"><button type="button" class="amb-clr" data-target="acont"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div></div>
+  <div class="afi"><div class="amb-clr-wrap"><input type="text" id="acont" placeholder="e.g. qbit-manage,cross-seed" value="<?=htmlspecialchars($settings['STOP_CONTAINERS']??'')?>"><button type="button" class="amb-clr" data-target="acont"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div></div>
 </div>
 
-<!-- Conditional sections - ordered to match the Options grid above -->
 
-<!-- 2. Exclusions (aext) -->
 <div id="aex-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">Exclusions</div>
   <div class="af"><span class="afl" data-tip="Click to open the file picker and manage exclusions">Exclusions:</span>
@@ -380,18 +382,16 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<!-- 4. Size Based Filter (aszf) -->
 <div id="asz-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">Size Filter</div>
   <div class="af"><span class="afl" data-tip="Only move files larger than this size">Min Size:</span>
     <div class="afi"><div style="display:flex;gap:4px;width:var(--iw);">
-      <select id="aszm" style="width:140px;flex-shrink:0;"><?php $sv=(int)($settings['SIZE_MB']??1); for($i=1;$i<=999;$i++) echo'<option value="'.$i.'"'.($sv===$i?' selected':'').'>'.$i.'</option>'; ?></select>
+      <select id="aszm" style="width:140px;flex-shrink:0;"><?php $sv=(int)($settings['SIZE']??1); for($i=1;$i<=999;$i++) echo'<option value="'.$i.'"'.($sv===$i?' selected':'').'>'.$i.'</option>'; ?></select>
       <select id="aszu" style="flex:1;"><?php $su=$settings['SIZE_UNIT']??'MB'; foreach(['MB','GB','TB'] as $u) echo'<option value="'.$u.'"'.($su===$u?' selected':'').'>'.$u.'</option>'; ?></select>
     </div></div>
   </div>
 </div>
 
-<!-- 5. Notifications (antf) -->
 <div id="an-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">Notification Service</div>
   <div class="af">
@@ -408,7 +408,6 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   <div id="awh-box"></div>
 </div>
 
-<!-- 6. Age Based Filter (aagf) -->
 <div id="aag-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">Age Filter</div>
   <div class="af"><span class="afl" data-tip="Only move files older than this many days">Age (days):</span>
@@ -416,11 +415,10 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<!-- 11. CPU & I/O Priorities (apri) -->
 <div id="apr-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">CPU &amp; I/O Priorities</div>
   <div class="af"><span class="afl" data-tip="CPU scheduling priority (-20=highest, 19=lowest)">CPU Priority:</span>
-    <div class="afi"><select id="acpu"><?php $cp=$settings['PROCESS_PRIORITY']??'0'; for($i=-20;$i<=19;$i++) echo"<option value=\"$i\"".($cp==$i?' selected':'').">$i</option>"; ?></select></div>
+    <div class="afi"><select id="acpu"><?php $cp=$settings['CPU_PRIORITY']??'0'; for($i=-20;$i<=19;$i++) echo"<option value=\"$i\"".($cp==$i?' selected':'').">$i</option>"; ?></select></div>
   </div>
   <div class="af"><span class="afl" data-tip="I/O scheduling priority">I/O Priority:</span>
     <div class="afi"><select id="aiop">
@@ -431,9 +429,8 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<!-- 12. Pre/Post Scripts (ascp) -->
 <div id="asc-sec" style="display:none;">
-  <div class="asec" style="margin-top:8px;">Pre / Post Scripts</div>
+  <div class="asec" style="margin-top:8px;">Pre &amp; Post Scripts</div>
   <div class="af"><span class="afl" data-tip="Script to run at the start of every session">Pre-Move Script:</span>
     <div class="afi"><div class="amb-clr-wrap"><input type="text" id="apres" placeholder="/mnt/user/scripts/pre_move.sh" value="<?=htmlspecialchars($settings['PRE_SCRIPT']??'')?>"><button type="button" class="amb-clr" data-target="apres"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div></div>
   </div>
@@ -442,7 +439,6 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<!-- 13. Jdupes (ajdp) -->
 <div id="ahsh-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">Jdupes Hash Location</div>
   <div class="af"><span class="afl" data-tip="Share to save the jdupes hash database">Hash Location:</span>
@@ -450,7 +446,6 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   </div>
 </div>
 
-<!-- 14. Qbittorrent (aqbt) -->
 <div id="aqb-sec" style="display:none;">
   <div class="asec" style="margin-top:8px;">qBittorrent</div>
   <div class="af"><span class="afl" data-tip="host:port only, no http://">Host:</span>
@@ -474,26 +469,25 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   <div id="apyw" data-py="<?=file_exists('/usr/bin/python3')?'1':'0'?>" style="display:none;color:var(--er);font-size:11px;margin-bottom:6px;">&#9888; Python3 not installed &mdash; required for Qbit Script</div>
 </div>
 
-<!-- Options slider grid -->
 <div class="asec" style="margin-top:8px;">Options</div>
 <div class="aog">
 <?php
 $opts=[
-  'aaut'=>['AUTOSTART',               'Autostart on Boot',           'Start automatically when Unraid boots'],
-  'aext'=>['EXCLUSIONS_ENABLED',      'Exclusions',                  'Exclude specific files and folders from moving'],
+  'aaut'=>['AUTOSTART_ON_BOOT',               'Autostart on Boot',           'Start automatically when Unraid boots'],
+  'aext'=>['EXCLUSIONS',      'Exclusions',                  'Exclude specific files and folders from moving'],
   'adr' =>['DRY_RUN',                 'Dry Run',                     'Simulate moves without transferring files'],
   'aszf'=>['SIZE_BASED_FILTER',       'Size Based Filter',           'Only move files larger than the specified MB'],
-  'antf'=>['ENABLE_NOTIFICATIONS',    'Notifications',               'Send notifications when automover starts/finishes'],
+  'antf'=>['NOTIFICATIONS',    'Notifications',               'Send notifications when automover starts/finishes'],
   'aagf'=>['AGE_BASED_FILTER',        'Age Based Filter',            'Only move files older than the specified days'],
-  'atw' =>['FORCE_RECONSTRUCTIVE_WRITE','Force Turbo Write',         'Force Unraid reconstructive write during moves'],
+  'atw' =>['FORCE_TURBO_WRITE','Force Turbo Write',         'Force Unraid reconstructive write during moves'],
   'ahid'=>['HIDDEN_FILTER',           'Hidden Filter',               'Skip files and folders starting with a dot'],
-  'atrm'=>['ENABLE_TRIM',             'SSD Trim',                    'Run SSD trim after the move completes'],
+  'atrm'=>['SSD_TRIM',             'SSD Trim',                    'Run SSD trim after the move completes'],
   'aap2'=>['ALLOW_DURING_PARITY',     'Allow During Parity',         'Allow running during a parity check'],
-  'apri'=>['PRIORITIES',              'CPU &amp; I/O Priorities',    'Enable CPU and I/O scheduling priority controls'],
-  'ascp'=>['ENABLE_SCRIPTS',          'Pre/Post Scripts',            'Run a script at session start and end'],
-  'ajdp'=>['ENABLE_JDUPES',           'Jdupes',                      'Run jdupes fix-hardlinks on shares after moving'],
-  'aqbt'=>['QBITTORRENT_SCRIPT',      'Qbittorrent Move Script',     'Pause qBittorrent torrents before moving'],
-  'acln'=>['ENABLE_CLEANUP',          'Cleanup',                     'Remove empty folders from the selected pool'],
+  'apri'=>['CPU_AND_IO_PRIORITIES',              'CPU &amp; I/O Priorities',    'Enable CPU and I/O scheduling priority controls'],
+  'ascp'=>['PRE_AND_POST_SCRIPTS',          'Pre &amp; Post Scripts',            'Run a script at session start and end'],
+  'ajdp'=>['JDUPES',           'Jdupes',                      'Run jdupes fix-hardlinks on shares after moving'],
+  'aqbt'=>['QBITTORRENT_MOVE_SCRIPT',      'Qbittorrent Move Script',     'Pause qBittorrent torrents before moving'],
+  'acln'=>['CLEANUP',          'Cleanup',                     'Remove empty folders from the selected pool'],
   'asac'=>['STOP_ALL_CONTAINERS',     'Stop All Containers',         'Stop all running containers during moves'],
 ];
 foreach($opts as $id=>$info): ?>
@@ -504,9 +498,8 @@ foreach($opts as $id=>$info): ?>
 <?php endforeach; ?>
 </div>
 
-</div><!-- #aap -->
+</div>
 
-<!-- MANUAL MOVE PANEL -->
 <div id="ammp" class="ac-body" style="display:none;">
 <p style="font-size:11px;color:var(--mt);margin:0 0 10px;">* Only Dry Run, Cleanup, and Notifications from saved settings apply.</p>
 <div class="af"><span class="afl" data-tip="Source folder to move from">Source:</span>
@@ -524,12 +517,11 @@ foreach($opts as $id=>$info): ?>
 <span class="ame" id="ammoe" style="max-width:320px;">&#9888; Select one mode</span>
 <div class="aact" style="margin-top:12px;"><button type="button" id="ammst">Start</button></div>
 <div id="ammp2" class="apop"></div>
-</div><!-- #ammp -->
+</div>
 
-</div><!-- .ac -->
-</div><!-- #amb-sc -->
+</div>
+</div>
 
-<!-- FILES MOVED LOG -->
 <div id="amb-mp">
   <div class="ac-head" style="border-radius:var(--r) var(--r) 0 0;"><span class="ac-title" style="margin-left:-4px;">Files Moved</span><span id="amb-lc" style="font-size:11px;color:var(--mt);margin-left:auto;padding:0;"></span></div>
   <div class="altb">
@@ -549,7 +541,6 @@ foreach($opts as $id=>$info): ?>
   <pre class="alp" id="amvl">Loading&hellip;</pre>
 </div>
 
-<!-- ACTIVITY LOG -->
 <div id="amb-lp">
   <div class="ac-head" style="border-radius:var(--r) var(--r) 0 0;">
     <span class="ac-title" style="margin-left:-10px;">Activity Log</span>
@@ -576,17 +567,15 @@ foreach($opts as $id=>$info): ?>
   <pre class="alp" id="algl">Automover log not found</pre>
 </div>
 
-</div><!-- #amb-g -->
+</div>
 
-<!-- SCHEDULE TABLE -->
 <div id="amb-sched-section" style="width:100%;box-sizing:border-box;padding-bottom:16px;margin-top:4px;">
   <div id="amb-sched-title" class="asec" style="display:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mt);padding:6px 0 4px;margin-bottom:6px;">Scheduled Jobs</div>
   <div id="amb-schedule-list"></div>
 </div>
 
-</div><!-- #amb -->
+</div>
 
-<!-- MODALS -->
 <div class="amd" id="apm">
   <div class="amb-box">
     <div class="amh"><button type="button" id="apup" style="padding:4px 10px;font-size:12px;">&uarr; Up</button><span>Select Exclusion Paths</span><button type="button" id="apcl" style="margin-left:auto;">Close</button></div>
@@ -931,31 +920,31 @@ document.addEventListener('DOMContentLoaded',function(){
     ['DISCORD','GOTIFY','NTFY','PUSHOVER','SLACK'].forEach(s => { if (!wh['WEBHOOK_'+s]) wh['WEBHOOK_'+s]=''; });
     const {cron, mode} = buildCronFromUI();
     return {
-      AGE_BASED_FILTER: cb('aagf'), AGE_DAYS: g('aaged'),
-      ALLOW_DURING_PARITY: cb('aap2'), AUTOSTART: cb('aaut'),
-      CONTAINER_NAMES: g('acont'), CRON_EXPRESSION: cron||'', CRON_MODE: mode||g('acm')||'daily',
-      DAILY_MINUTE: g('adm'), DAILY_TIME: g('adt'),
-      DRY_RUN: cb('adr'),
-      ENABLE_CLEANUP: cb('acln'), ENABLE_JDUPES: cb('ajdp'),
-      ENABLE_NOTIFICATIONS: cb('antf'), ENABLE_SCRIPTS: cb('ascp'),
-      ENABLE_TRIM: cb('atrm'), EXCLUSIONS_ENABLED: cb('aext'),
-      FORCE_RECONSTRUCTIVE_WRITE: cb('atw'), HASH_PATH: g('ahp'),
-      HIDDEN_FILTER: cb('ahid'), HOURLY_FREQUENCY: g('ahf'),
-      IO_PRIORITY: g('aiop'),
-      MANUAL_MOVE: document.getElementById('amb-ms')?.value==='manual'?'yes':'no',
-      MONTHLY_DAY: g('amdy'), MONTHLY_MINUTE: g('amm'), MONTHLY_TIME: g('amt'),
-      NOTIFICATION_SERVICE: svcs, POOL_NAME: g('apool'),
-      POST_SCRIPT: g('aposts'), PRE_SCRIPT: g('apres'),
-      PRIORITIES: cb('apri'), PROCESS_PRIORITY: g('acpu'),
-      PUSHOVER_USER_KEY: g('wh-pushover-key'),
-      QBITTORRENT_DAYS_FROM: g('aqbdf'), QBITTORRENT_DAYS_TO: g('aqbdt'),
-      QBITTORRENT_HOST: g('aqbh'), QBITTORRENT_PASSWORD: g('aqbp'),
-      QBITTORRENT_SCRIPT: cb('aqbt'), QBITTORRENT_STATUS: g('aqbs'),
-      QBITTORRENT_USERNAME: g('aqbu'),
-      SIZE_BASED_FILTER: cb('aszf'), SIZE_MB: g('aszm'), SIZE_UNIT: g('aszu'),
-      STOP_ALL_CONTAINERS: cb('asac'), STOP_THRESHOLD: g('asthr'),
-      THRESHOLD: g('athr'),
-      WEEKLY_DAY: g('awd'), WEEKLY_MINUTE: g('awm'), WEEKLY_TIME: g('awt'),
+      AGE_BASED_FILTER:       cb('aagf'), AGE_DAYS:              g('aaged'),
+      ALLOW_DURING_PARITY:    cb('aap2'), AUTOSTART_ON_BOOT:     cb('aaut'),
+      CLEANUP:                cb('acln'), CPU_AND_IO_PRIORITIES: cb('apri'),
+      CPU_PRIORITY:           g('acpu'),  CRON_EXPRESSION:       cron||'',
+      CRON_MODE:              mode||g('acm')||'daily',
+      DAILY_MINUTE:           g('adm'),   DAILY_TIME:            g('adt'),
+      DRY_RUN:                cb('adr'),  EXCLUSIONS:            cb('aext'),
+      FORCE_TURBO_WRITE:      cb('atw'),  HASH_LOCATION:         g('ahp'),
+      HIDDEN_FILTER:          cb('ahid'), HOURLY_FREQUENCY:      g('ahf'),
+      IO_PRIORITY:            g('aiop'),  JDUPES:                cb('ajdp'),
+      MANUAL_MOVE:            document.getElementById('amb-ms')?.value==='manual'?'yes':'no',
+      MONTHLY_DAY:            g('amdy'),  MONTHLY_MINUTE:        g('amm'),
+      MONTHLY_TIME:           g('amt'),   NOTIFICATION_SERVICE:  svcs,
+      NOTIFICATIONS:          cb('antf'), POOL_NAME:             g('apool'),
+      POST_SCRIPT:            g('aposts'),PRE_AND_POST_SCRIPTS:  cb('ascp'),
+      PRE_SCRIPT:             g('apres'), PUSHOVER_USER_KEY:     g('wh-pushover-key'),
+      QBITTORRENT_DAYS_FROM:  g('aqbdf'), QBITTORRENT_DAYS_TO:  g('aqbdt'),
+      QBITTORRENT_HOST:       g('aqbh'),  QBITTORRENT_MOVE_SCRIPT: cb('aqbt'),
+      QBITTORRENT_PASSWORD:   g('aqbp'),  QBITTORRENT_STATUS:   g('aqbs'),
+      QBITTORRENT_USERNAME:   g('aqbu'),  SIZE:                  g('aszm'),
+      SIZE_BASED_FILTER:      cb('aszf'), SIZE_UNIT:             g('aszu'),
+      STOP_ALL_CONTAINERS:    cb('asac'), STOP_CONTAINERS:       g('acont'),
+      STOP_THRESHOLD:         g('asthr'), SSD_TRIM:              cb('atrm'),
+      THRESHOLD:              g('athr'),  WEEKLY_DAY:            g('awd'),
+      WEEKLY_MINUTE:          g('awm'),   WEEKLY_TIME:           g('awt'),
       ...wh
     };
   }
@@ -1089,8 +1078,8 @@ document.addEventListener('DOMContentLoaded',function(){
             HOURLY_FREQUENCY:'ahf',DAILY_TIME:'adt',DAILY_MINUTE:'adm',
             WEEKLY_DAY:'awd',WEEKLY_TIME:'awt',WEEKLY_MINUTE:'awm',
             MONTHLY_DAY:'amdy',MONTHLY_TIME:'amt',MONTHLY_MINUTE:'amm',
-            CONTAINER_NAMES:'acont',PROCESS_PRIORITY:'acpu',IO_PRIORITY:'aiop',
-            HASH_PATH:'ahp',AGE_DAYS:'aaged',SIZE_MB:'aszm',SIZE_UNIT:'aszu',
+            STOP_CONTAINERS:'acont',CPU_PRIORITY:'acpu',IO_PRIORITY:'aiop',
+            HASH_LOCATION:'ahp',AGE_DAYS:'aaged',SIZE:'aszm',SIZE_UNIT:'aszu',
             QBITTORRENT_HOST:'aqbh',QBITTORRENT_USERNAME:'aqbu',
             QBITTORRENT_DAYS_FROM:'aqbdf',QBITTORRENT_DAYS_TO:'aqbdt',
             QBITTORRENT_STATUS:'aqbs',PRE_SCRIPT:'apres',POST_SCRIPT:'aposts',
@@ -1099,11 +1088,11 @@ document.addEventListener('DOMContentLoaded',function(){
           // Checkboxes
           const cbMap={
             DRY_RUN:'adr',AGE_BASED_FILTER:'aagf',SIZE_BASED_FILTER:'aszf',
-            ENABLE_NOTIFICATIONS:'antf',HIDDEN_FILTER:'ahid',
-            FORCE_RECONSTRUCTIVE_WRITE:'atw',ENABLE_TRIM:'atrm',
-            ALLOW_DURING_PARITY:'aap2',PRIORITIES:'apri',ENABLE_SCRIPTS:'ascp',
-            ENABLE_JDUPES:'ajdp',QBITTORRENT_SCRIPT:'aqbt',ENABLE_CLEANUP:'acln',
-            STOP_ALL_CONTAINERS:'asac',EXCLUSIONS_ENABLED:'aext',AUTOSTART:'aaut',
+            NOTIFICATIONS:'antf',HIDDEN_FILTER:'ahid',
+            FORCE_TURBO_WRITE:'atw',SSD_TRIM:'atrm',
+            ALLOW_DURING_PARITY:'aap2',CPU_AND_IO_PRIORITIES:'apri',PRE_AND_POST_SCRIPTS:'ascp',
+            JDUPES:'ajdp',QBITTORRENT_MOVE_SCRIPT:'aqbt',CLEANUP:'acln',
+            STOP_ALL_CONTAINERS:'asac',EXCLUSIONS:'aext',AUTOSTART_ON_BOOT:'aaut',
           };
           if(cbMap[k]){const c=document.getElementById(cbMap[k]);if(c)c.checked=(v==='yes');}
         });
