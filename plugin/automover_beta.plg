@@ -4,7 +4,7 @@
 <PLUGIN 
   name="automover_beta"
   author="jcofer555"
-  version="2026.03.07.01"
+  version="2026.03.17.01"
   launch="Settings/automover_beta"
   pluginURL="https://raw.githubusercontent.com/jcofer555/automover_beta/main/plugin/automover_beta.plg"
   support="https://forums.unraid.net/topic/192216-automover_beta-for-unraid/"
@@ -16,15 +16,15 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.03.17.01
+
+- 1
+
 ### 2026.03.07.01
 
 - 1
 
 ### 2026.03.16.03
-
-- 1
-
-### 2026.03.16.02
 
 - 1
 
@@ -41,9 +41,9 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 <URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.07.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.03.07.01/unraid-automover_beta-2026.03.07.01-noarch-1.txz</URL>
-<SHA256>f31578a6fc86ea4cc9851f1410f7f0e53372f95746c96d187b94d59d3332b510</SHA256>
+<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.17.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.03.17.01/unraid-automover_beta-2026.03.17.01-noarch-1.txz</URL>
+<SHA256>2cd04f8b3fd280f64088986d42cd49979820f178379437ae8ebb67903107bfc0</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -56,7 +56,7 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.07.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.17.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/automover_beta/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/automover_beta/helpers/default_settings.cfg"
 TMP_CFG="/tmp/automover_beta_settings.tmp"
@@ -75,53 +75,45 @@ ordered_keys=(
     "AGE_BASED_FILTER"
     "AGE_DAYS"
     "ALLOW_DURING_PARITY"
-    "AUTOSTART"
-    "CONTAINER_NAMES"
-    "CRON_EXPRESSION"
-    "CRON_MODE"
-    "DAILY_TIME"
+    "AUTOSTART_ON_BOOT"
+    "CLEANUP"
+    "CPU_AND_IO_PRIORITIES"
     "DRY_RUN"
-    "ENABLE_CLEANUP"
-    "ENABLE_JDUPES"
-    "ENABLE_NOTIFICATIONS"
-    "ENABLE_SCRIPTS"
-    "ENABLE_TRIM"
-    "EXCLUSIONS_ENABLED"
-    "FORCE_RECONSTRUCTIVE_WRITE"
-    "HASH_PATH"
+    "EXCLUSIONS"
+    "FORCE_TURBO_WRITE"
+    "HASH_LOCATION"
     "HIDDEN_FILTER"
-    "HOURLY_FREQUENCY"
     "IO_PRIORITY"
+    "JDUPES"
     "MANUAL_MOVE"
-    "MONTHLY_DAY"
-    "MONTHLY_TIME"
     "NOTIFICATION_SERVICE"
+    "NOTIFICATIONS"
     "POOL_NAME"
     "POST_SCRIPT"
+    "PRE_AND_POST_SCRIPTS"
     "PRE_SCRIPT"
-    "PRIORITIES"
     "PROCESS_PRIORITY"
     "PUSHOVER_USER_KEY"
     "QBITTORRENT_DAYS_FROM"
     "QBITTORRENT_DAYS_TO"
     "QBITTORRENT_HOST"
+    "QBITTORRENT_MOVE_SCRIPT"
     "QBITTORRENT_PASSWORD"
-    "QBITTORRENT_SCRIPT"
     "QBITTORRENT_STATUS"
     "QBITTORRENT_USERNAME"
+    "SIZE"
     "SIZE_BASED_FILTER"
-    "SIZE_MB"
     "SIZE_UNIT"
     "STOP_ALL_CONTAINERS"
+    "STOP_CONTAINERS"
     "STOP_THRESHOLD"
+    "SSD_TRIM"
     "THRESHOLD"
     "WEBHOOK_DISCORD"
     "WEBHOOK_GOTIFY"
     "WEBHOOK_NTFY"
     "WEBHOOK_PUSHOVER"
     "WEBHOOK_SLACK"
-    "WEEKLY_DAY"
-    "WEEKLY_TIME"
 )
 
 # ==========================================================
@@ -167,7 +159,7 @@ if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.03.07.01-noarch-1.txz" -delete
+find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.03.17.01-noarch-1.txz" -delete
 
 # Ensure helper scripts are executable
 chmod +x /usr/local/emhttp/plugins/automover_beta/helpers/*
@@ -191,7 +183,7 @@ fi
 echo ""
 echo "----------------------------------------------------"
 echo " automover_beta has been installed."
-echo " Version: 2026.03.07.01"
+echo " Version: 2026.03.17.01"
 echo "----------------------------------------------------"
 echo ""
 echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → automover_beta"
