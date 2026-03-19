@@ -150,6 +150,26 @@ function applyLogSearch(logId, searchId, countId, clearId) {
   }
 }
 
+// ── Tooltipster helper ────────────────────────────────────────────────────────
+// Initialises tooltipster on elements that have a data-tipster attribute.
+// Safe to call multiple times — skips already-initialised elements.
+function ambInitTooltips(root) {
+  const ctx = root || document;
+  if (typeof $ === 'undefined' || !$.fn || !$.fn.tooltipster) return;
+  $(ctx).find('[data-tipster]').each(function () {
+    const $el = $(this);
+    if ($el.hasClass('tooltipstered')) return;
+    $el.tooltipster({
+      maxWidth: 280,
+      theme:    'tooltipster-shadow',
+      delay:    120,
+      content:  $el.data('tipster'),
+    });
+    // Remove native title so browser doesn't double-tip
+    $el.removeAttr('title');
+  });
+}
+
 // ── Pollers ───────────────────────────────────────────────────────────────────
 (function pollStatus() {
   fetch(ah('status_check.php'), { credentials: 'same-origin' })
@@ -290,6 +310,9 @@ function checkPoolWarn(pool) {
 
 // ── DOMContentLoaded ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+
+  // ── Initialise tooltipster on all static buttons ──────────────────────────
+  ambInitTooltips(document);
 
   // ── Custom confirm dialog (replaces native confirm() which browsers suppress) ─
   function initSearch(si, xi, onInput) {
@@ -686,7 +709,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('amb-schedule-list').innerHTML = html;
         document.getElementById('amb-sched-title').style.display =
           document.querySelector('#amb-schedule-list .TableContainer') ? 'block' : 'none';
-        setTimeout(ambInitTableTips, 50);
+        setTimeout(() => {
+          ambInitTableTips();
+          // Re-init tooltipster on any newly injected buttons inside the schedule list
+          ambInitTooltips(document.getElementById('amb-schedule-list'));
+        }, 50);
       })
       .catch(e => { console.error('[amb] ambLoadSchedules failed:', e); })
       .finally(() => {});

@@ -128,22 +128,21 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   <span class="ac-title" id="act" style="margin-left:-4px;">Automover</span>
   <div class="adot" id="adot" style="margin-left:2px;"></div>
   <span id="astxt" style="font-size:11px;color:var(--mt);margin-left:0;">Idle</span>
-
 </div>
 
 <div id="aap" class="ac-body">
 
 <div class="asec">Controls</div>
 <div class="aact">
-  <button type="button" id="amnb">Move</button>
-  <button type="button" id="amb-schedule-btn">Schedule It</button>
-  <button type="button" id="amb-cancel-edit-btn" style="display:none;">Cancel</button>
+  <button type="button" id="amnb" data-tipster="Run the mover now">Move</button>
+  <button type="button" id="amb-schedule-btn" data-tipster="Create or update a scheduled job">Schedule It</button>
+  <button type="button" id="amb-cancel-edit-btn" data-tipster="Cancel editing this schedule" style="display:none;">Cancel</button>
 </div>
 
 <div id="amb-banner">
   <div class="amb-banner-inner">
     <span id="amb-banner-text" class="amb-banner-text"></span>
-    <button type="button" id="astopb">Stop</button>
+    <button type="button" id="astopb" data-tipster="Stop the current move after it finishes the current file">Stop</button>
     <span id="amb-stop-toast">Stop requested</span>
   </div>
 </div>
@@ -241,7 +240,7 @@ const PO_SAVED="<?=htmlspecialchars($settings['PUSHOVER_USER_KEY']??'')?>";
   <div class="af"><span class="afl" data-tip="Click to open the file picker and manage exclusions">Exclusions:</span>
     <div class="afi">
       <input type="text" id="aexf" readonly value="Click to open file picker" style="cursor:pointer;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%276%27%3E%3Cpath d=%27M0 0l5 6 5-6z%27 fill=%27%2322d3ee%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;">
-      <button type="button" id="aexlb" style="margin-top:4px;">Exclusions List</button>
+      <button type="button" id="aexlb" data-tipster="View and manually edit the exclusions list" style="margin-top:4px;">Exclusions List</button>
     </div>
   </div>
 </div>
@@ -379,7 +378,7 @@ foreach($opts as $id=>$info): ?>
   <div class="aor"><span class="aol" data-tip="Keep destination fully in sync with source">Full Sync</span><label class="atog"><input type="checkbox" id="ammsy"><span class="aslide"></span></label></div>
 </div>
 <span class="ame" id="ammoe" style="max-width:320px;">&#9888; Select one mode</span>
-<div class="aact" style="margin-top:12px;"><button type="button" id="ammst">Start</button></div>
+<div class="aact" style="margin-top:12px;"><button type="button" id="ammst" data-tipster="Start the manual rsync operation">Start</button></div>
 <div id="ammp2" class="apop"></div>
 </div>
 
@@ -396,10 +395,10 @@ foreach($opts as $id=>$info): ?>
     <span class="asc" id="amvc"></span>
     <div class="alr" style="margin-right:-10px;">
       <span class="atst" id="amvt"></span>
-      <button type="button" id="amvcl">Clear</button>
-      <button type="button" id="amvcp">Copy</button>
-      <button type="button" id="amvtp">&#8679;</button>
-      <button type="button" id="amvbt">&#8681;</button>
+      <button type="button" id="amvcl" data-tipster="Clear files moved log">Clear</button>
+      <button type="button" id="amvcp" data-tipster="Copy log to clipboard">Copy</button>
+      <button type="button" id="amvtp" data-tipster="Scroll to top">&#8679;</button>
+      <button type="button" id="amvbt" data-tipster="Auto-scroll to bottom (toggles)">&#8681;</button>
     </div>
   </div>
   <pre class="alp" id="amvl">Loading&hellip;</pre>
@@ -422,10 +421,10 @@ foreach($opts as $id=>$info): ?>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-top:1px solid var(--br);margin-left:-12px;">
       <span class="atst" id="algt"></span>
-      <button type="button" id="algcl">Clear</button>
-      <button type="button" id="algcp">Copy</button>
-      <button type="button" id="algtp">&#8679;</button>
-      <button type="button" id="algbt" style="margin-right:-10px;">&#8681;</button>
+      <button type="button" id="algcl" data-tipster="Clear activity log">Clear</button>
+      <button type="button" id="algcp" data-tipster="Copy log to clipboard">Copy</button>
+      <button type="button" id="algtp" data-tipster="Scroll to top">&#8679;</button>
+      <button type="button" id="algbt" data-tipster="Auto-scroll to bottom (toggles)" style="margin-right:-10px;">&#8681;</button>
     </div>
   </div>
   <pre class="alp" id="algl">Automover log not found</pre>
@@ -440,45 +439,74 @@ foreach($opts as $id=>$info): ?>
 
 </div>
 
+<!-- ── Exclusion file picker modal ──────────────────────────────────────────── -->
 <div class="amd" id="apm">
   <div class="amb-box">
-    <div class="amh"><button type="button" id="apup" style="padding:4px 10px;font-size:12px;">&uarr; Up</button><span>Select Exclusion Paths</span><button type="button" id="apcl" style="margin-left:auto;">Close</button></div>
+    <div class="amh">
+      <button type="button" id="apup" data-tipster="Go up one directory" style="padding:4px 10px;font-size:12px;">&uarr; Up</button>
+      <span>Select Exclusion Paths</span>
+      <button type="button" id="apcl" data-tipster="Close this dialog" style="margin-left:auto;">Close</button>
+    </div>
     <div class="ambo"><div class="apc" id="apcrm"></div><div class="apg" id="apgr"></div></div>
     <div class="amf">
       <div style="display:flex;flex-direction:column;gap:4px;">
-        <div style="display:flex;gap:6px;"><button type="button" id="apad">Add Selected</button><button type="button" id="aprem">Remove Selected</button></div>
-        <div style="display:flex;gap:6px;"><button type="button" id="apadx" style="display:none;">Add as wildcards</button><button type="button" id="apremx" style="display:none;">Remove as wildcards</button></div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="apad" data-tipster="Add selected paths to exclusions">Add Selected</button>
+          <button type="button" id="aprem" data-tipster="Remove selected paths from exclusions">Remove Selected</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="apadx" data-tipster="Add selected file extensions as wildcards (e.g. *.mkv)" style="display:none;">Add as wildcards</button>
+          <button type="button" id="apremx" data-tipster="Remove selected file extensions as wildcards" style="display:none;">Remove as wildcards</button>
+        </div>
         <div id="aptst"></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ── Exclusions list (text editor) modal ──────────────────────────────────── -->
 <div class="amd" id="aem">
   <div class="amb-box" style="max-width:640px;">
     <div class="amh"><span>View / Edit Exclusions</span></div>
-    <div class="ambo"><p style="font-size:11px;color:var(--mt);margin:0 0 8px;">Only pool paths work (e.g. /mnt/cache/folder). Do not use /mnt/disk1, /mnt/user, or /mnt/user0.</p><textarea id="amb-et"></textarea></div>
-    <div class="amf"><div style="display:flex;gap:6px;"><button type="button" id="aecp">Copy</button><button type="button" id="aesv">Save</button></div><button type="button" id="aecl2">Close</button></div>
+    <div class="ambo">
+      <p style="font-size:11px;color:var(--mt);margin:0 0 8px;">Only pool paths work (e.g. /mnt/cache/folder). Do not use /mnt/disk1, /mnt/user, or /mnt/user0.</p>
+      <textarea id="amb-et"></textarea>
+    </div>
+    <div class="amf">
+      <div style="display:flex;gap:6px;">
+        <button type="button" id="aecp" data-tipster="Copy exclusions to clipboard">Copy</button>
+        <button type="button" id="aesv" data-tipster="Save changes to exclusions list">Save</button>
+      </div>
+      <button type="button" id="aecl2" data-tipster="Close this dialog">Close</button>
+    </div>
   </div>
 </div>
 
+<!-- ── Path picker modal (manual move) ─────────────────────────────────────── -->
 <div class="amd" id="appm">
   <div class="amb-box" style="max-width:700px;height:520px;">
-    <div class="amh"><button type="button" id="appup" style="padding:4px 10px;font-size:12px;">&uarr; Up</button><span>Select Path</span><button type="button" id="appcl" style="margin-left:auto;">Close</button></div>
+    <div class="amh">
+      <button type="button" id="appup" data-tipster="Go up one directory" style="padding:4px 10px;font-size:12px;">&uarr; Up</button>
+      <span>Select Path</span>
+      <button type="button" id="appcl" data-tipster="Close this dialog" style="margin-left:auto;">Close</button>
+    </div>
     <div class="ambo" style="display:flex;flex-direction:column;padding-bottom:0;overflow:hidden;">
       <div class="apc" id="appcrm" style="flex-shrink:0;"></div>
       <div id="amb-ppg" style="flex:1;overflow-y:auto;"></div>
     </div>
     <div class="amf">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-        <button type="button" id="appcr">Create Folder</button>
+        <button type="button" id="appcr" data-tipster="Create a new folder at the current location">Create Folder</button>
         <div id="appnr" style="display:none;gap:6px;align-items:center;">
           <input type="text" id="appnn" placeholder="Folder name" style="width:160px;height:26px;background:var(--bg);border:1px solid var(--br2);border-radius:var(--r2);color:var(--tx);padding:0 8px;font-size:12px;outline:none;-webkit-appearance:none;appearance:none;">
-          <button type="button" id="appnok">Create</button>
-          <button type="button" id="appnnc" class="ab-sec">Cancel</button>
+          <button type="button" id="appnok" data-tipster="Create this folder">Create</button>
+          <button type="button" id="appnnc" data-tipster="Cancel folder creation" class="ab-sec">Cancel</button>
         </div>
       </div>
-      <div style="display:flex;gap:6px;"><button type="button" id="appclr">Clear</button><button type="button" id="appcnf">Select</button></div>
+      <div style="display:flex;gap:6px;">
+        <button type="button" id="appclr" data-tipster="Clear the current selection">Clear</button>
+        <button type="button" id="appcnf" data-tipster="Use selected path">Select</button>
+      </div>
     </div>
   </div>
 </div>
@@ -488,30 +516,32 @@ foreach($opts as $id=>$info): ?>
   <button id="amb-mwx" type="button" style="position:absolute;top:8px;right:10px;background:transparent;border:none;box-shadow:none;padding:0;color:#f59e0b;font-size:18px;font-weight:bold;cursor:pointer;line-height:1;width:auto;height:auto;min-width:0;min-height:0;filter:none;border-radius:0;">&times;</button>
   &#9888; Mover Tuning plugin appears to be installed. Having both can cause conflicts.
   <div style="margin-top:8px;">
-    <button type="button" id="amb-mwd">Dismiss Permanently</button>
+    <button type="button" id="amb-mwd" data-tipster="Permanently dismiss this warning — deletes mover_warning_dismissed.txt to re-enable">Dismiss Permanently</button>
     <div id="amb-mwdn" style="display:none;color:var(--ok);font-size:12px;margin-top:4px;">&#10003; Dismissed permanently</div>
     <div style="color:var(--mt);font-size:11px;margin-top:4px;">Delete <b>mover_warning_dismissed.txt</b> from <i>/boot/config/plugins/automover_beta</i> to re-enable.</div>
   </div>
 </div>
 <?php endif; ?>
 
+<!-- ── Confirm dialog ───────────────────────────────────────────────────────── -->
 <div class="amd" id="amb-confirm">
   <div class="amb-box" style="max-width:360px;">
     <div class="amh"><span id="amb-confirm-title">Confirm</span></div>
     <div class="ambo" style="padding:16px;"><p id="amb-confirm-msg" style="margin:0;font-size:13px;color:var(--tx);"></p></div>
     <div class="amf" style="justify-content:flex-end;gap:8px;">
-      <button type="button" id="amb-confirm-cancel" class="ab-sec">Cancel</button>
-      <button type="button" id="amb-confirm-ok">OK</button>
+      <button type="button" id="amb-confirm-cancel" data-tipster="Cancel this action" class="ab-sec">Cancel</button>
+      <button type="button" id="amb-confirm-ok" data-tipster="Confirm and proceed">OK</button>
     </div>
   </div>
 </div>
 
+<!-- ── Alert dialog ─────────────────────────────────────────────────────────── -->
 <div class="amd" id="amb-alert">
   <div class="amb-box" style="max-width:360px;">
     <div class="amh"><span id="amb-alert-title">Error</span></div>
     <div class="ambo" style="padding:16px;"><p id="amb-alert-msg" style="margin:0;font-size:13px;color:var(--tx);"></p></div>
     <div class="amf" style="justify-content:flex-end;">
-      <button type="button" id="amb-alert-ok">OK</button>
+      <button type="button" id="amb-alert-ok" data-tipster="Dismiss this message">OK</button>
     </div>
   </div>
 </div>
