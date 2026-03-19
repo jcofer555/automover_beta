@@ -1,10 +1,13 @@
 <?php
-declare(strict_types=1);
-
 ob_start();
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 define('CFG_PATH', '/boot/config/plugins/automover_beta/settings.cfg');
+
+// ── Suppress any session warnings — Unraid may already have one running ───────
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 header('Content-Type: application/json');
@@ -14,13 +17,18 @@ $csrf_header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 $csrf_post   = $_POST['csrf_token']          ?? '';
 $csrf_cookie = $_COOKIE['csrf_token']        ?? '';
 
-if (empty($csrf_header) && empty($csrf_post)) {
+$token = $csrf_header ?: $csrf_post;
+
+if (empty($token)) {
     ob_end_clean();
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Missing CSRF token']);
     exit;
 }
-if ($csrf_header !== $csrf_cookie && $csrf_post !== $csrf_cookie) {
+
+// If cookie is present, validate against it. If absent, accept the token as-is
+// (Unraid's webUI may not expose the cookie to helper requests).
+if (!empty($csrf_cookie) && $csrf_header !== $csrf_cookie && $csrf_post !== $csrf_cookie) {
     ob_end_clean();
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
@@ -28,7 +36,7 @@ if ($csrf_header !== $csrf_cookie && $csrf_post !== $csrf_cookie) {
 }
 
 // ── Catch stray warnings ──────────────────────────────────────────────────────
-set_error_handler(function(int $errno, string $errstr, string $errfile, int $errline): bool {
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
     global $_amb_err;
     $_amb_err = "PHP error [$errno]: $errstr in $errfile:$errline";
     return true;
@@ -37,11 +45,11 @@ global $_amb_err;
 $_amb_err = null;
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
-function get_str(string $key, string $default = ''): string {
+function get_str($key, $default = '') {
     return isset($_POST[$key]) ? trim((string)$_POST[$key]) : $default;
 }
 
-function normalize_container_names(string $raw): string {
+function normalize_container_names($raw) {
     if ($raw === '') return '';
     return trim(preg_replace('/,\s*/', ',', $raw));
 }

@@ -1,4 +1,5 @@
 'use strict';
+console.log('[amb] JS loaded');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function ah(p) { return A_H + '/' + p; }
@@ -42,6 +43,42 @@ function fallbackCopy(t) {
 
 let snStatus = null, snLock = null, snLog = null, snMoved = null;
 let logDebug  = false, logAuto = false, movedAuto = false, lastRunTs = null;
+
+// ── Custom dialogs at module scope so onclick handlers in injected HTML can reach them ──
+function ambConfirm(msg, onOk) {
+  const modal  = document.getElementById('amb-confirm');
+  const msgEl  = document.getElementById('amb-confirm-msg');
+  const okBtn  = document.getElementById('amb-confirm-ok');
+  const canBtn = document.getElementById('amb-confirm-cancel');
+  if (!modal) { if (onOk) onOk(); return; }
+  msgEl.textContent = msg;
+  modal.classList.add('open');
+  function cleanup() {
+    modal.classList.remove('open');
+    okBtn.removeEventListener('click', handleOk);
+    canBtn.removeEventListener('click', handleCancel);
+  }
+  function handleOk()     { cleanup(); if (onOk) onOk(); }
+  function handleCancel() { cleanup(); }
+  okBtn.addEventListener('click', handleOk);
+  canBtn.addEventListener('click', handleCancel);
+}
+
+function ambAlert(msg, title) {
+  const modal = document.getElementById('amb-alert');
+  const msgEl = document.getElementById('amb-alert-msg');
+  const titEl = document.getElementById('amb-alert-title');
+  const okBtn = document.getElementById('amb-alert-ok');
+  if (!modal) return;
+  msgEl.textContent = msg;
+  if (titEl) titEl.textContent = title || 'Error';
+  modal.classList.add('open');
+  function handleOk() {
+    modal.classList.remove('open');
+    okBtn.removeEventListener('click', handleOk);
+  }
+  okBtn.addEventListener('click', handleOk);
+}
 
 // ── Banner state — must be at module scope so pollLock can access ─────────────
 let ambMoveRunning = false;
@@ -254,7 +291,7 @@ function checkPoolWarn(pool) {
 // ── DOMContentLoaded ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
 
-  // ── Search X buttons ────────────────────────────────────────────────────────
+  // ── Custom confirm dialog (replaces native confirm() which browsers suppress) ─
   function initSearch(si, xi, onInput) {
     const s = document.getElementById(si);
     const x = document.getElementById(xi);
@@ -314,11 +351,7 @@ document.addEventListener('DOMContentLoaded', function () {
         snLog = null;
         showToast('algt', logDebug ? 'Debug log cleared' : 'Log cleared');
       }
-    }).catch(() => alert('Failed'));
-  });
-
-  document.getElementById('amvcl')?.addEventListener('click', function () {
-    if (!confirm('Clear the files moved log?')) return;
+    }).catch(() => ambAlert('Failed'));
     fetch(ah('clear_log.php'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
@@ -332,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (lc) lc.textContent = '';
         showToast('amvt', 'Log cleared');
       }
-    }).catch(() => alert('Failed'));
+    }).catch(() => ambAlert('Failed'));
   });
 
   document.getElementById('algcp')?.addEventListener('click', function () {
@@ -415,6 +448,16 @@ document.addEventListener('DOMContentLoaded', function () {
     upd();
   })();
 
+  // ── Webhook fields ───────────────────────────────────────────────────────────
+  const WH_CFG = {
+    Discord:  { label: 'Discord Webhook URL',    prefix: 'https://discord.com/api/webhooks/' },
+    Gotify:   { label: 'Gotify URL',             prefix: 'https://' },
+    Ntfy:     { label: 'Ntfy URL',               prefix: 'https://' },
+    Pushover: { label: 'Pushover App Token URL', prefix: 'https://api.pushover.net/', needsKey: true },
+    Slack:    { label: 'Slack Webhook URL',      prefix: 'https://hooks.slack.com/' },
+    Unraid:   { label: null },
+  };
+
   // ── Notification multiselect ─────────────────────────────────────────────────
   const ams  = document.getElementById('anms');
   const amsl = document.getElementById('anml-list');
@@ -433,16 +476,6 @@ document.addEventListener('DOMContentLoaded', function () {
   amsl?.querySelectorAll('input').forEach(cb => cb.addEventListener('change', updateNotifLabel));
   document.addEventListener('click', () => { if (amsl) amsl.style.display = 'none'; });
   updateNotifLabel();
-
-  // ── Webhook fields ───────────────────────────────────────────────────────────
-  const WH_CFG = {
-    Discord:  { label: 'Discord Webhook URL',    prefix: 'https://discord.com/api/webhooks/' },
-    Gotify:   { label: 'Gotify URL',             prefix: 'https://' },
-    Ntfy:     { label: 'Ntfy URL',               prefix: 'https://' },
-    Pushover: { label: 'Pushover App Token URL', prefix: 'https://api.pushover.net/', needsKey: true },
-    Slack:    { label: 'Slack Webhook URL',      prefix: 'https://hooks.slack.com/' },
-    Unraid:   { label: null },
-  };
 
   function rebuildWebhooks() {
     const box = document.getElementById('awh-box'); if (!box) return;
@@ -644,17 +677,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Schedule CRUD ────────────────────────────────────────────────────────────
-  let ambEditingId  = null;
-  let ambSchedLocked = false;
-
-  function ambLockSched()   {
-    ambSchedLocked = true;
-    document.querySelectorAll('.amb-schedule-run-btn').forEach(b => b.disabled = true);
-  }
-  function ambUnlockSched() {
-    ambSchedLocked = false;
-    document.querySelectorAll('.amb-schedule-run-btn').forEach(b => b.disabled = false);
-  }
+  let ambEditingId = null;
 
   function ambLoadSchedules() {
     fetch(ah('schedule_list.php'))
@@ -665,8 +688,8 @@ document.addEventListener('DOMContentLoaded', function () {
           document.querySelector('#amb-schedule-list .TableContainer') ? 'block' : 'none';
         setTimeout(ambInitTableTips, 50);
       })
-      .catch(() => {})
-      .finally(() => ambUnlockSched());
+      .catch(e => { console.error('[amb] ambLoadSchedules failed:', e); })
+      .finally(() => {});
   }
 
   async function ambFetchExistingCrons() {
@@ -718,23 +741,21 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   async function ambScheduleJob() {
-    if (ambSchedLocked) return;
     if (!validateQbit()) {
       document.getElementById('aap')?.classList.add('ashk');
       setTimeout(() => document.getElementById('aap')?.classList.remove('ashk'), 400);
       return;
     }
     const { valid, cron } = buildCronFromUI();
-    if (!valid) { alert('Invalid cron expression'); return; }
+    if (!valid) { ambAlert('Invalid cron expression'); return; }
 
     const existing = await ambFetchExistingCrons();
     const conflict = ambCheckCronConflict(cron, existing, ambEditingId);
     if (conflict) {
-      alert('This schedule is within 15 minutes of an existing schedule (' + conflict + '). Please choose a different time.');
+      ambAlert('This schedule is within 15 minutes of an existing schedule (' + conflict + '). Please choose a different time.');
       return;
     }
 
-    ambLockSched();
     const settings = buildSettingsParams();
     const url  = ambEditingId ? 'schedule_update.php' : 'schedule_create.php';
     const body = new URLSearchParams({ csrf_token: csrf, cron });
@@ -754,7 +775,7 @@ document.addEventListener('DOMContentLoaded', function () {
       showPop('asp', ambEditingId ? '✅ Schedule Updated' : '✅ Schedule Created');
       ambEditingId = null;
     })
-    .catch(e => { ambUnlockSched(); alert(e.message || 'Failed to save schedule'); });
+    .catch(e => { ambAlert(e.message || 'Failed to save schedule'); });
   }
 
   function ambResetScheduleUI() {
@@ -762,11 +783,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('amb-schedule-btn');
     if (btn) btn.textContent = 'Schedule It';
     document.getElementById('amb-cancel-edit-btn').style.display = 'none';
+    // Restore the edit button in the table row if it was changed
+    const editingBtn = document.querySelector('#amb-schedule-list button[data-action="edit"][data-editing="true"]');
+    if (editingBtn) {
+      editingBtn.textContent = 'Edit';
+      editingBtn.removeAttribute('data-editing');
+    }
   }
 
-  window.ambEditSchedule = function (id) {
-    if (ambSchedLocked) return;
-    ambLockSched();
+  window.ambEditSchedule = function (id, editBtn) {
+    // If already editing this row, treat as cancel
+    if (ambEditingId === id) { ambResetScheduleUI(); return; }
+    // Reset any previously editing row first
+    if (ambEditingId) ambResetScheduleUI();
     fetch(ah('schedule_load.php') + '?id=' + encodeURIComponent(id))
       .then(r => safeJson(r, 'schedule_load.php'))
       .then(s => {
@@ -817,65 +846,71 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         checkPoolWarn(g('apool'));
         ambEditingId = id;
+        // Change the row's Edit button to Cancel
+        if (editBtn) { editBtn.textContent = 'Cancel'; editBtn.dataset.editing = 'true'; }
         const btn = document.getElementById('amb-schedule-btn');
         if (btn) btn.textContent = 'Update Schedule';
         document.getElementById('amb-cancel-edit-btn').style.display = '';
-        ambUnlockSched();
         document.getElementById('aap')?.scrollTo({ top: 0, behavior: 'smooth' });
       })
-      .catch(e => { ambUnlockSched(); alert('Failed to load schedule: ' + e.message); });
+      .catch(e => { ambAlert('Failed to load schedule: ' + e.message); });
   };
 
   window.ambDeleteSchedule = function (id) {
-    if (ambSchedLocked) return;
-    if (!confirm('Delete this schedule?')) return;
-    ambLockSched();
-    fetch(ah('schedule_delete.php') + '?csrf_token=' + encodeURIComponent(csrf), {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
-      body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
-    })
-    .then(r => safeJson(r, 'schedule_delete.php'))
-    .then(() => { if (ambEditingId === id) ambResetScheduleUI(); ambLoadSchedules(); })
-    .catch(e => { ambUnlockSched(); alert('Failed to delete: ' + e.message); });
+    ambConfirm('Delete this schedule?', () => {
+      fetch(ah('schedule_delete.php') + '?csrf_token=' + encodeURIComponent(csrf), {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
+        body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
+      })
+      .then(r => safeJson(r, 'schedule_delete.php'))
+      .then(() => { if (ambEditingId === id) ambResetScheduleUI(); ambLoadSchedules(); })
+      .catch(e => { ambAlert('Failed to delete: ' + e.message); });
+    });
   };
 
   window.ambToggleSchedule = function (id, isEnabled) {
-    if (ambSchedLocked) return;
-    if (!confirm(isEnabled ? 'Disable this schedule?' : 'Enable this schedule?')) return;
-    ambLockSched();
-    fetch(ah('schedule_toggle.php') + '?csrf_token=' + encodeURIComponent(csrf), {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
-      body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
-    })
-    .then(r => safeJson(r, 'schedule_toggle.php'))
-    .then(() => ambLoadSchedules())
-    .catch(e => { ambUnlockSched(); alert('Failed to toggle: ' + e.message); });
+    ambConfirm(isEnabled ? 'Disable this schedule?' : 'Enable this schedule?', () => {
+      fetch(ah('schedule_toggle.php') + '?csrf_token=' + encodeURIComponent(csrf), {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
+        body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
+      })
+      .then(r => safeJson(r, 'schedule_toggle.php'))
+      .then(() => ambLoadSchedules())
+      .catch(e => { ambAlert('Failed to toggle: ' + e.message); });
+    });
   };
 
   window.ambRunSchedule = function (id, btn) {
-    if (ambSchedLocked || ambMoveRunning) return;
-    if (!confirm('Run this schedule now?')) return;
-    ambLockSched();
-    btn.disabled = true;
-    fetch(ah('run_schedule.php') + '?csrf_token=' + encodeURIComponent(csrf), {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
-      body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
-    })
-    .then(r => r.json().catch(() => ({ started: true })))
-    .then(d => {
-      if (d.started === false) {
-        btn.disabled = false;
-        ambUnlockSched();
-        alert(d.message || 'Failed to start');
-        return;
-      }
-      ambShowBanner('⚠ Scheduled move in progress');
-    })
-    .catch(e => { btn.disabled = false; ambUnlockSched(); alert('Failed to run: ' + e.message); });
+    if (ambMoveRunning) return;
+    ambConfirm('Run this schedule now?', () => {
+      fetch(ah('run_schedule.php') + '?csrf_token=' + encodeURIComponent(csrf), {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': csrf },
+        body:    'id=' + encodeURIComponent(id) + '&csrf_token=' + encodeURIComponent(csrf)
+      })
+      .then(r => r.json().catch(() => ({ started: true })))
+      .then(d => {
+        if (d.started === false) { ambAlert(d.message || 'Failed to start'); }
+      })
+      .catch(e => { ambAlert('Failed to run: ' + e.message); });
+    });
   };
+
+  // Delegated listener on document — most reliable cross-browser approach
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('#amb-schedule-list button[data-action]');
+    if (!btn) return;
+    console.log('[amb] schedule btn clicked', btn.dataset.action, btn.dataset.id);
+    const action  = btn.dataset.action;
+    const id      = btn.dataset.id;
+    const enabled = btn.dataset.enabled === 'true';
+    if (action === 'edit')   window.ambEditSchedule(id, btn);
+    if (action === 'toggle') window.ambToggleSchedule(id, enabled);
+    if (action === 'delete') window.ambDeleteSchedule(id);
+    if (action === 'run')    window.ambRunSchedule(id, btn);
+  });
 
   document.getElementById('amb-schedule-btn')?.addEventListener('click', ambScheduleJob);
   document.getElementById('amb-cancel-edit-btn')?.addEventListener('click', () => { ambResetScheduleUI(); });
@@ -939,12 +974,12 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(d => {
         const ok = (d.data || d).ok || d.status === 'ok' || d.status === 'success';
         if (ok === false && (d.data || d).error) {
-          alert('Move failed: ' + ((d.data || d).error || '?'));
+          ambAlert('Move failed: ' + ((d.data || d).error || '?'));
           return;
         }
         ambShowBanner('⚠ Move in progress');
       })
-      .catch(e => { console.error('Move error:', e); alert(e.message || 'Move failed'); });
+      .catch(e => { console.error('Move error:', e); ambAlert(e.message || 'Move failed'); });
   });
 
   // ── Exclusion picker ─────────────────────────────────────────────────────────

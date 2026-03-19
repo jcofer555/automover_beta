@@ -494,4 +494,26 @@ foreach($opts as $id=>$info): ?>
   </div>
 </div>
 <?php endif; ?>
-<script src="/plugins/automover_beta/automover_beta.js"></script>
+
+<div class="amd" id="amb-confirm">
+  <div class="amb-box" style="max-width:360px;">
+    <div class="amh"><span id="amb-confirm-title">Confirm</span></div>
+    <div class="ambo" style="padding:16px;"><p id="amb-confirm-msg" style="margin:0;font-size:13px;color:var(--tx);"></p></div>
+    <div class="amf" style="justify-content:flex-end;gap:8px;">
+      <button type="button" id="amb-confirm-cancel" class="ab-sec">Cancel</button>
+      <button type="button" id="amb-confirm-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="amd" id="amb-alert">
+  <div class="amb-box" style="max-width:360px;">
+    <div class="amh"><span id="amb-alert-title">Error</span></div>
+    <div class="ambo" style="padding:16px;"><p id="amb-alert-msg" style="margin:0;font-size:13px;color:var(--tx);"></p></div>
+    <div class="amf" style="justify-content:flex-end;">
+      <button type="button" id="amb-alert-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<script src="/plugins/automover_beta/automover_beta.js?v=<?=filemtime('/usr/local/emhttp/plugins/automover_beta/automover_beta.js')?>"></script>

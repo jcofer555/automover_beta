@@ -127,10 +127,10 @@ if (empty($schedules)) return;
   <td><?= htmlspecialchars($hidden) ?></td>
   <td>
     <div class="sched-actions">
-      <button type="button" data-tipster="Edit this schedule" onclick="ambEditSchedule('<?= $id_esc ?>')">Edit</button>
-      <button type="button" data-tipster="<?= htmlspecialchars($toggleTip) ?>" onclick="ambToggleSchedule('<?= $id_esc ?>', <?= $enabledBool ? 'true' : 'false' ?>)"><?= htmlspecialchars($btnText) ?></button>
-      <button type="button" data-tipster="Delete this schedule" onclick="ambDeleteSchedule('<?= $id_esc ?>')">Delete</button>
-      <button type="button" data-tipster="Run this schedule now" class="amb-schedule-run-btn" onclick="ambRunSchedule('<?= $id_esc ?>', this)">Run</button>
+      <button type="button" data-tipster="Edit this schedule" data-action="edit" data-id="<?= $id_esc ?>">Edit</button>
+      <button type="button" data-tipster="<?= htmlspecialchars($toggleTip) ?>" data-action="toggle" data-id="<?= $id_esc ?>" data-enabled="<?= $enabledBool ? 'true' : 'false' ?>"><?= htmlspecialchars($btnText) ?></button>
+      <button type="button" data-tipster="Delete this schedule" data-action="delete" data-id="<?= $id_esc ?>">Delete</button>
+      <button type="button" data-tipster="Run this schedule now" class="amb-schedule-run-btn" data-action="run" data-id="<?= $id_esc ?>">Run</button>
     </div>
   </td>
 </tr>
