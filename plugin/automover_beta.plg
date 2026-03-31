@@ -4,7 +4,7 @@
 <PLUGIN 
   name="automover_beta"
   author="jcofer555"
-  version="2026.03.27.01"
+  version="2026.03.31.01"
   launch="Settings/automover_beta"
   pluginURL="https://raw.githubusercontent.com/jcofer555/automover_beta/main/plugin/automover_beta.plg"
   support="https://forums.unraid.net/topic/192216-automover_beta-for-unraid/"
@@ -16,15 +16,15 @@
 <CHANGES>
 <![CDATA[
 
+### 2026.03.31.01
+
+- 1 
+
 ### 2026.03.27.01
 
 - 1
 
 ### 2026.03.22.01
-
-- 1
-
-### 2026.03.21.01
 
 - 1
 
@@ -41,9 +41,9 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 <URL>https://github.com/jcofer555/automover_beta/raw/refs/heads/main/packages/libjodycode-4.0.1-x86_64-2_slackdce.txz</URL>
 </FILE>
 
-<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.27.01-noarch-1.txz">
-<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.03.27.01/unraid-automover_beta-2026.03.27.01-noarch-1.txz</URL>
-<SHA256>f3606be436c0e58bdd137c8d42693d450b58c0e323559fb8e9edbd588f3b1caa</SHA256>
+<FILE Name="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.31.01-noarch-1.txz">
+<URL>https://github.com/jcofer555/automover_beta/releases/download/2026.03.31.01/unraid-automover_beta-2026.03.31.01-noarch-1.txz</URL>
+<SHA256>c1ff2089dbb6d56ab069029e62d728252f376632910fb0017f7f6826a33a87cb</SHA256>
 </FILE>
 
 <!-- ==========================================================
@@ -56,7 +56,7 @@ For older releases, see https://github.com/jcofer555/automover_beta/releases
 #  INSTALL / UPGRADE LOGIC
 # ==========================================================
 
-PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.27.01-noarch-1.txz"
+PACKAGE_TXZ="/boot/config/plugins/automover_beta/unraid-automover_beta-2026.03.31.01-noarch-1.txz"
 USER_CFG="/boot/config/plugins/automover_beta/settings.cfg"
 DEFAULT_CFG="/usr/local/emhttp/plugins/automover_beta/helpers/default_settings.cfg"
 TMP_CFG="/tmp/automover_beta_settings.tmp"
@@ -159,7 +159,7 @@ if realpath "$MOVER_TUNING" &>/dev/null || [ -d "$MOVER_TUNING_DIR" ]; then
 fi
 
 # Remove older txz packages (keep only the current one)
-find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.03.27.01-noarch-1.txz" -delete
+find /boot/config/plugins/automover_beta/ -maxdepth 1 -type f -name "unraid-automover_beta-*.txz" ! -name "unraid-automover_beta-2026.03.31.01-noarch-1.txz" -delete
 
 # Ensure helper scripts are executable
 chmod +x /usr/local/emhttp/plugins/automover_beta/helpers/*
@@ -183,7 +183,7 @@ fi
 echo ""
 echo "----------------------------------------------------"
 echo " automover_beta has been installed."
-echo " Version: 2026.03.27.01"
+echo " Version: 2026.03.31.01"
 echo "----------------------------------------------------"
 echo ""
 echo "⚠️ If you were on version 2025.12.15.04 or earlier, reconfigure your schedule in Settings → automover_beta"
