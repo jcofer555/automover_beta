@@ -9,11 +9,6 @@ Markdown="false"
 const CFG_PATH = '/boot/config/plugins/automover_beta/settings.cfg';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-const STALE_KEYS = ['CRON_EXPRESSION','CRON_MODE','DAILY_TIME','DAILY_MINUTE',
-    'HOURLY_FREQUENCY','MONTHLY_DAY','MONTHLY_MINUTE','MONTHLY_TIME','PROCESS_PRIORITY','MANUAL_MOVE',
-    'WEEKLY_DAY','WEEKLY_MINUTE','WEEKLY_TIME','ENABLE_CLEANUP','ENABLE_JDUPES','ENABLE_NOTIFICATIONS','ENABLE_SCRIPTS',
-    'ENABLE_TRIM','EXCLUSIONS_ENABLED','AUTOSTART','AUTOSTART_ON_BOOT','CONTAINER_NAMES','FORCE_RECONSTRUCTIVE_WRITE','HASH_PATH','SIZE_MB','PRIORITIES','QBITTORRENT_SCRIPT'];
-
 $defaults = [
     'AGE_BASED_FILTER'       => 'no',
     'AGE_DAYS'               => 1,
@@ -57,9 +52,9 @@ $defaults = [
     'WEBHOOK_SLACK'          => '',
 ];
 $existing = file_exists(CFG_PATH) ? (parse_ini_file(CFG_PATH) ?: []) : [];
-foreach (STALE_KEYS as $sk) { unset($existing[$sk]); }
+$existing = array_intersect_key($existing, $defaults);
 foreach ($defaults as $k=>$v) { if (!array_key_exists($k,$existing)) $existing[$k]=$v; }
-$write = []; foreach ($defaults as $k=>$dv) { $write[$k] = $existing[$k]; }
+$write = $existing;
 ksort($write);
 $cfg=''; foreach ($write as $k=>$v) { $cfg.="$k=\"{$v}\"\n"; }
 @file_put_contents(CFG_PATH,$cfg);
