@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const automover_beta_SCRIPT = '/usr/local/emhttp/plugins/automover_beta/helpers/automover_beta_beta.sh';
+const automover_beta_SCRIPT = '/usr/local/emhttp/plugins/automover_beta/helpers/automover_beta.sh';
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 header('Content-Type: application/json');
